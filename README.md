@@ -1,5 +1,7 @@
 # Responsive Mockup Studio
 
+<p align="center"><img src="docs/logo.png" width="256" alt="Responsive Mockup Studio logo: flat double-outline frame on black"></p>
+
 [English](README.md) · [Türkçe](README.tr.md)
 
 Responsive Mockup Studio is a YCSWU Tools creative application for placing real responsive websites inside configurable technical device mockups. It ships as a static web application, a Windows installer and a portable Windows executable.
@@ -129,7 +131,7 @@ Important scripts:
 
 ## cPanel deployment
 
-The deployable archive is `Responsive-Mockup-Studio-Web-cPanel-1.2.5.zip`. It is built for:
+The deployable archive is `Responsive-Mockup-Studio-Web-cPanel-1.2.6.zip`. It is built for:
 
 ```text
 https://ycswu.co/mockup-studio/
@@ -141,7 +143,7 @@ See [DEPLOY-CPANEL-TR.md](DEPLOY-CPANEL-TR.md) for the exact Turkish upload chec
 
 ## Quality assurance
 
-The v1.2.5 release was verified through:
+The v1.2.6 release was verified through:
 
 - 32 unit/regression tests.
 - Source, Portable and installed Setup Electron smoke tests.

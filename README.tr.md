@@ -1,5 +1,7 @@
 # Responsive Mockup Studio
 
+<p align="center"><img src="docs/logo.png" width="256" alt="Responsive Mockup Studio logosu: siyah zemin üzerinde düz çift kontürlü çerçeve"></p>
+
 [English](README.md) · [Türkçe](README.tr.md)
 
 Responsive Mockup Studio, gerçek responsive web sitelerini ayarlanabilir teknik cihaz mockup'larının içine yerleştiren bir YCSWU Tools creative uygulamasıdır. Statik web uygulaması, Windows kurulum dosyası ve kurulumsuz Portable EXE olarak yayınlanır.
@@ -129,7 +131,7 @@ npm.cmd run release:all
 
 ## cPanel kurulumu
 
-Hazır arşiv: `Responsive-Mockup-Studio-Web-cPanel-1.2.5.zip`
+Hazır arşiv: `Responsive-Mockup-Studio-Web-cPanel-1.2.6.zip`
 
 Hedef URL:
 
@@ -143,7 +145,7 @@ Adım adım kontrol için [DEPLOY-CPANEL-TR.md](DEPLOY-CPANEL-TR.md) dosyasına 
 
 ## Kalite doğrulaması
 
-v1.2.5 release'i şu kontrollerden geçti:
+v1.2.6 release'i şu kontrollerden geçti:
 
 - 32 unit/regresyon testi.
 - Kaynak, Portable ve kurulu Setup Electron smoke testleri.

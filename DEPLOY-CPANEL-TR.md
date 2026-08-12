@@ -1,6 +1,6 @@
 # GoDaddy cPanel kurulumu
 
-Hazır paket: `Responsive-Mockup-Studio-Web-cPanel-1.2.5.zip`
+Hazır paket: `Responsive-Mockup-Studio-Web-cPanel-1.2.6.zip`
 
 Hedef adres: `https://ycswu.co/mockup-studio/`
 

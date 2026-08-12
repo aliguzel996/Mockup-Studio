@@ -1,6 +1,6 @@
 {
   "name": "responsive-mockup-studio",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "description": "Render real responsive websites inside production-ready device mockups.",
   "type": "module",
   "main": "electron/main.cjs",
@@ -9,7 +9,7 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build:web": "node scripts/build-dom-to-svg.mjs && vite build",
+    "build:web": "node scripts/generate-assets.mjs && node scripts/build-dom-to-svg.mjs && vite build",
     "preview": "vite preview --host 127.0.0.1",
     "start": "npm run build:web && electron .",
     "assets": "node scripts/generate-assets.mjs",
@@ -17,7 +17,7 @@
     "test:unit": "node --test tests/*.test.mjs",
     "typecheck": "tsc --noEmit",
     "validate:web-seo": "node tests/validate-cpanel-build.mjs",
-    "qa": "npm run typecheck && npm run test:unit && npm run build:web && node tests/validate-build.mjs && npm run validate:web-seo",
+    "qa": "npm run assets && npm run typecheck && npm run test:unit && npm run build:web && node tests/validate-build.mjs && npm run validate:web-seo",
     "dist:win": "npm run qa && npm run assets && electron-builder --win nsis portable",
     "release:all": "npm run dist:win && node scripts/package-release.mjs"
   },

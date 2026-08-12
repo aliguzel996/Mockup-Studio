@@ -467,12 +467,22 @@ test('YCSWU manifest is catalog ready', () => {
 test('application logo is the flat double-outline frame on black', () => {
   const icon = read('public/icon.svg');
   const webManifest = JSON.parse(read('public/site.webmanifest'));
+  const index = read('index.html');
+  const assetScript = read('scripts/generate-assets.mjs');
   assert.equal((icon.match(/<rect\b/g) || []).length, 3);
   assert.match(icon, /<rect width="512" height="512" fill="#000000"\/>/);
   assert.equal((icon.match(/class="outline"/g) || []).length, 2);
   assert.doesNotMatch(icon, /<path\b|<circle\b|<ellipse\b|<polygon\b/);
   assert.doesNotMatch(icon, /quadratic|curve|stand|camera/i);
   assert.ok(webManifest.icons.some((entry) => entry.src === './icon.svg' && entry.type === 'image/svg+xml'));
+  assert.ok(webManifest.icons.some((entry) => entry.src === './icon-192.png' && entry.sizes === '192x192'));
+  assert.ok(webManifest.icons.some((entry) => entry.src === './icon-512.png' && entry.sizes === '512x512'));
+  for (const file of ['favicon.ico', 'favicon-16.png', 'favicon-32.png', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png']) {
+    assert.ok(fs.existsSync(path.join(root, 'public', file)), `Missing generated web icon: ${file}`);
+    assert.match(assetScript, new RegExp(file.replace('.', '\\.')));
+  }
+  assert.match(index, /rel="apple-touch-icon"/);
+  assert.match(index, /rel="shortcut icon"/);
 });
 
 test('web release is subfolder-safe and ships complete search and AI discovery metadata', () => {
@@ -493,7 +503,7 @@ test('web release is subfolder-safe and ships complete search and AI discovery m
   assert.match(llms, /## Core capabilities/);
   assert.match(htaccess, /RewriteBase \/mockup-studio\//);
   assert.match(htaccess, /DirectoryIndex index\.html/);
-  for (const entry of ['.htaccess', 'index.html', 'og-image.png', 'robots.txt', 'sitemap.xml', 'site.webmanifest', 'llms.txt']) {
+  for (const entry of ['.htaccess', 'index.html', 'favicon.ico', 'favicon-16.png', 'favicon-32.png', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'og-image.png', 'robots.txt', 'sitemap.xml', 'site.webmanifest', 'llms.txt']) {
     assert.match(packageScript, new RegExp(entry.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
   assert.match(packageScript, /Web-cPanel-\$\{version\}\.zip/);

@@ -5,7 +5,7 @@
 Canonical URL: https://ycswu.co/mockup-studio/
 Publisher: YCSWU
 Creator: Ali Guzel
-Version: 1.2.5
+Version: 1.2.6
 Languages: Turkish and English
 Platforms: Web and Windows desktop
 
