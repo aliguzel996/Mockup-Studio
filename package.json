@@ -1,0 +1,89 @@
+{
+  "name": "responsive-mockup-studio",
+  "version": "1.2.4",
+  "description": "Render real responsive websites inside production-ready device mockups.",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "author": "Ali Guzel / YCSWU",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build:web": "node scripts/build-dom-to-svg.mjs && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "start": "npm run build:web && electron .",
+    "assets": "node scripts/generate-assets.mjs",
+    "test": "npm run test:unit",
+    "test:unit": "node --test tests/*.test.mjs",
+    "typecheck": "tsc --noEmit",
+    "validate:web-seo": "node tests/validate-cpanel-build.mjs",
+    "qa": "npm run typecheck && npm run test:unit && npm run build:web && node tests/validate-build.mjs && npm run validate:web-seo",
+    "dist:win": "npm run qa && npm run assets && electron-builder --win nsis portable",
+    "release:all": "npm run dist:win && node scripts/package-release.mjs"
+  },
+  "dependencies": {
+    "@fontsource/space-mono": "^5.3.0",
+    "@xmldom/xmldom": "^0.9.10",
+    "dom-to-svg": "^0.12.2",
+    "fontkit": "^2.0.4",
+    "sharp": "0.35.3"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.18",
+    "@types/react-dom": "18.3.5",
+    "@vitejs/plugin-react": "6.0.5",
+    "electron": "43.3.0",
+    "electron-builder": "26.15.3",
+    "esbuild": "^0.28.2",
+    "lucide-react": "0.468.0",
+    "png-to-ico": "3.0.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "typescript": "5.7.3",
+    "vite": "8.2.1"
+  },
+  "build": {
+    "appId": "co.ycswu.responsivemockupstudio",
+    "productName": "Responsive Mockup Studio",
+    "copyright": "Copyright (c) 2026 YCSWU",
+    "directories": {
+      "output": "release/windows",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "build/icon.ico",
+      "package.json"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/sharp/**/*",
+      "node_modules/@img/**/*"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "responsive-mockup-studio-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Responsive Mockup Studio",
+      "deleteAppDataOnUninstall": true,
+      "include": "build/installer.nsh",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "artifactName": "Responsive-Mockup-Studio-Setup-${version}-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "Responsive-Mockup-Studio-Portable-${version}-${arch}.${ext}"
+    }
+  }
+}

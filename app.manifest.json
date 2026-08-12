@@ -1,0 +1,14 @@
+{
+  "id": "responsive-mockup-studio",
+  "name": "Responsive Mockup Studio",
+  "version": "1.2.4",
+  "shortDescription": "Render live websites inside calibrated monitor, laptop, tablet and phone mockups.",
+  "category": "CreativeTool",
+  "creator": "Ali Guzel",
+  "publisher": "YCSWU",
+  "license": "Open source",
+  "website": "https://ycswu.co/responsive-mockup-studio/",
+  "inputFormats": ["URL", "HTTP", "HTTPS", "PNG frame", "PNG mask"],
+  "outputFormats": ["PNG", "Transparent PNG", "JPG", "SVG", "WebP"],
+  "systemRequirements": ["Modern web browser", "Windows 10 or newer"]
+}

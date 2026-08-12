@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "responsive-mockup-studio",
+  "displayName": "Responsive Mockup Studio",
+  "version": "1.2.4",
+  "kind": "creative-tool",
+  "platforms": ["web", "windows"],
+  "capabilities": [
+    "live-chromium-navigation",
+    "responsive-viewport-capture",
+    "font-independent-svg-text-outlines",
+    "high-density-export",
+    "transparent-background"
+  ]
+}

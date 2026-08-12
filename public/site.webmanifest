@@ -1,0 +1,13 @@
+{
+  "name": "Responsive Mockup Studio",
+  "short_name": "Mockup Studio",
+  "description": "Create responsive website mockups with customizable technical device frames and production-ready exports.",
+  "lang": "tr",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#080808",
+  "theme_color": "#080808",
+  "categories": ["design", "graphics", "productivity", "developer"]
+}

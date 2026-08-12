@@ -1,0 +1,43 @@
+# Responsive Mockup Studio
+
+> Responsive Mockup Studio is a bilingual YCSWU Tools application for placing live responsive websites inside customizable technical device mockups and exporting production-ready images.
+
+Canonical URL: https://ycswu.co/mockup-studio/
+Publisher: YCSWU
+Creator: Ali Guzel
+Version: 1.2.4
+Languages: Turkish and English
+Platforms: Web and Windows desktop
+
+## Core capabilities
+
+- Preview a URL at desktop, tablet, phone or custom responsive viewport sizes.
+- Use custom frames or fixed-ratio desktop, ultrawide, laptop, tablet and phone frames.
+- Change supported frame colors, materials, roughness, reflectivity and surface glare.
+- Enable an adjustable wireframe treatment without hiding the website screen.
+- Remove or restore supported physical parts such as a desktop stem, base, device detail, laptop lip or phone side controls.
+- Adjust camera zoom, X/Y position and three-axis tilt; pan with the middle mouse button and zoom with the wheel.
+- Frame the composition at 1:1, 4:5 or 16:9 in portrait or landscape orientation.
+- Save custom devices locally, favorite ready frames and bookmark or revisit URLs.
+- Export PNG, transparent PNG, JPG, WebP and SVG.
+- Convert website text to font-independent vector outlines in SVG export.
+- Hide page scrollbars, cursor or selected CSS elements during preview and export.
+- Switch between dark/light themes and Turkish/English interface text.
+
+## Web and Windows behavior
+
+The Windows version uses an embedded Chromium webview and can load and capture unrestricted external websites while retaining browser sessions. The static web version follows normal browser iframe and cross-origin policies, so a remote site may refuse to appear inside an iframe. The editor and local frame workflow remain available on the web.
+
+## Output behavior
+
+Raster and SVG exports reproduce the framed preview composition rather than tiling the source page. SVG device geometry and CSS shapes remain vector. Website text is converted to vector paths; bitmap photographs remain bitmap assets.
+
+## Privacy
+
+Project settings, bookmarks, favorites and saved custom devices are stored locally in the user's application/browser profile. The static web package does not require a server-side database.
+
+## Links
+
+- Application: https://ycswu.co/mockup-studio/
+- Publisher: https://ycswu.co/
+- Source: https://github.com/aliguzel996/Mockup-Studio
