@@ -292,6 +292,8 @@ test('JPG PNG and native SVG exports are wired without foreignObject raster wrap
   assert.match(main, /function inlineSvgImageNode/);
   assert.match(main, /data-rms-inline-svg/);
   assert.match(main, /RMSSVG\.documentToSVG/);
+  assert.match(main, /keepLinks: false/);
+  assert.match(app, /keepLinks: false/);
   assert.match(main, /outlineSvgText/);
   assert.match(main, /async function saveSvg/);
   assert.match(main, /vectorWebsiteAndDeviceExport/);
@@ -355,6 +357,23 @@ test('web preview does not render a permanent remote-capture warning banner', ()
   const styles = read('src/styles.css');
   assert.doesNotMatch(app, /webNotice|web-limit-banner|Remote-site capture works in Windows|Uzak site capture/);
   assert.doesNotMatch(styles, /web-limit-banner/);
+});
+
+test('web editor uses the desktop control surface without screenshot-upload fallbacks', () => {
+  const app = read('src/App.tsx');
+  const readme = read('README.md');
+  const readmeTr = read('README.tr.md');
+  assert.match(app, /<iframe[\s\S]*ref=\{\(node\) => setWebviewNode\(node\)\}/);
+  assert.match(app, /collectPageElements\(document, project\.hiddenSelectors\)/);
+  assert.match(app, /style\.textContent = guestPresentationCss\(captureProject\)/);
+  assert.match(app, /scrolling=\{project\.hideScrollbar \? 'no' : 'auto'\}/);
+  assert.match(app, /pointerEvents: project\.hideCursor \? 'none' : undefined/);
+  assert.match(app, /serializePageSvg\(document, captureViewport\.width, captureViewport\.height\)/);
+  assert.match(app, /navigateWebHistory\(-1\)/);
+  assert.match(app, /navigateWebHistory\(1\)/);
+  assert.doesNotMatch(app, /uploadCapture|screenshotInputRef|Upload screenshot|Ekran görüntüsü yükle/);
+  assert.doesNotMatch(readme, /uploaded screenshot|Screenshot upload/i);
+  assert.doesNotMatch(readmeTr, /ekran görüntüsü yükleme/i);
 });
 
 test('header contains only left language and right theme controls while browser chrome has no decorative dots', () => {

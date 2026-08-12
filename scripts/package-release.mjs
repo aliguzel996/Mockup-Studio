@@ -130,6 +130,24 @@ if (qaSource) {
   deliverables.push(qaDestination);
 }
 
+// Keep build and QA working directories on the current release only. These
+// folders are regenerated artifacts; retaining old versions makes handoff
+// ambiguous and wastes several gigabytes over repeated release iterations.
+const currentWindowsNames = new Set([
+  ...windowsFiles,
+  `Responsive-Mockup-Studio-Setup-${version}-x64.exe.blockmap`,
+]);
+for (const entry of await fs.readdir(windowsDir, { withFileTypes: true })) {
+  if (!entry.isFile() || !/^Responsive-Mockup-Studio-(?:Setup|Portable)-/i.test(entry.name)) continue;
+  if (!currentWindowsNames.has(entry.name)) await fs.rm(path.join(windowsDir, entry.name), { force: true });
+}
+const currentQaDirectory = qaSource ? path.dirname(qaSource) : null;
+for (const entry of await fs.readdir(root, { withFileTypes: true })) {
+  if (!entry.isDirectory() || !entry.name.startsWith('qa-installed-')) continue;
+  const candidate = path.join(root, entry.name);
+  if (candidate !== currentQaDirectory) await fs.rm(candidate, { recursive: true, force: true });
+}
+
 const deliveryPath = path.join(outputDir, `Responsive-Mockup-Studio-${version}-DELIVERY.txt`);
 await fs.writeFile(deliveryPath, [
   'RESPONSIVE MOCKUP STUDIO / YCSWU',

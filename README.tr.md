@@ -26,7 +26,7 @@ Responsive Mockup Studio; websiteyi, viewport'u, cihaz geometrisini ve çıktı 
 
 Bir URL girildiğinde website seçili cihaz ekranında açılır. Cihaz veya viewport değiştiğinde website gerçek ekran alanını takip eder; responsive breakpoint'ler çerçeveyle eşzamanlı kalır ve sabit ekran görüntüsünden kaynaklanan boşluklar oluşmaz.
 
-Windows sürümü canlı harici siteler, gezinme, oturumlar ve capture için gömülü Chromium kullanır. Statik web sürümü tarayıcının normal gömme kurallarına uyar; iframe veya cross-origin erişimini engelleyen sitelerde Windows sürümü ya da yüklenen bir ekran görüntüsü kullanılabilir.
+Windows sürümü canlı harici siteler, gezinme, oturumlar ve capture için gömülü Chromium kullanır. Web sürümü aynı editörü, cihaz kontrollerini, sayfa görünümü ayarlarını, yer imlerini, geçmişi ve çıktı akışını kullanır. Üçüncü taraf bir sitenin iframe içinde açılmasına ve DOM erişimine izin verip vermediğini tarayıcı güvenliği belirler; sınırsız cross-origin capture Windows sürümünde kullanılabilir.
 
 Tarayıcı çalışma alanı şunları içerir:
 
@@ -37,7 +37,7 @@ Tarayıcı çalışma alanı şunları içerir:
 - Recent URL listesi ve kalıcı bookmark'lar.
 - Scrollbar, imleç, animasyon ve sayfa zemini kontrolleri.
 - Özel CSS ve bulunan sayfa elemanları için güvenli görünürlük yönetimi.
-- Canlı sayfanın gömülemediği durumlar için ekran görüntüsü yükleme.
+- Windows editörüyle aynı viewport, çerçeve, materyal, sayfa görünümü ve çıktı kontrollerine sahip tarayıcı tabanlı canlı önizleme.
 
 ## Cihaz mockup'ları
 

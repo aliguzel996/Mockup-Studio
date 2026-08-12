@@ -39,6 +39,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
+import { documentToSVG, inlineResources } from 'dom-to-svg';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { adjustScreenGeometry, resolveOutputDimensions, screenAspect } from './geometry';
 import type { PreviewLayout } from './geometry';
@@ -57,6 +58,7 @@ import type {
   RuntimeInfo,
   ScreenGeometry,
   Theme,
+  VectorCaptureResult,
 } from './types';
 
 const STORAGE_KEY = 'rms.project.v1';
@@ -177,7 +179,7 @@ const tr = {
   hideScrollbar: 'Scrollbar gizle', hideCursor: 'İmleci gizle', hideBackground: 'Sayfa zeminini gizle',
   customCss: 'Özel CSS',
   pageElements: 'Sayfa elemanları', refreshElements: 'Elemanları yenile', noPageElements: 'Gizlenebilir eleman bulunamadı', technicalLocked: 'Üretici teknik ölçüleri kilitli',
-  uploadCapture: 'Ekran görüntüsü yükle', noCapture: 'Önce bir site capture alın veya ekran görüntüsü yükleyin.',
+  noCapture: 'Web sitesi tarayıcı güvenliği nedeniyle yakalanamadı. Aynı origin sayfasını kullanın veya Windows sürümünde açın.',
   captureFailed: 'Capture başarısız', exportDone: 'Çıktı hazır',
   bookmarks: 'Bookmarklar', bookmarkCurrent: 'Bu siteyi bookmarkla', removeBookmark: 'Bookmarkı sil', noBookmarks: 'Henüz bookmark yok',
   invalidUrl: 'Geçersiz web adresi', bookmarkAdded: 'Bookmark eklendi', bookmarkRemoved: 'Bookmark silindi', resetControl: 'Varsayılana döndür',
@@ -209,7 +211,7 @@ const en: typeof tr = {
   hideScrollbar: 'Hide scrollbar', hideCursor: 'Hide cursor', hideBackground: 'Hide page background',
   customCss: 'Custom CSS',
   pageElements: 'Page elements', refreshElements: 'Refresh elements', noPageElements: 'No hideable elements found', technicalLocked: 'Manufacturer geometry locked',
-  uploadCapture: 'Upload screenshot', noCapture: 'Capture a site or upload a screenshot first.',
+  noCapture: 'The website could not be captured because of browser security. Use a same-origin page or open it in the Windows edition.',
   captureFailed: 'Capture failed', exportDone: 'Export ready',
   bookmarks: 'Bookmarks', bookmarkCurrent: 'Bookmark this site', removeBookmark: 'Remove bookmark', noBookmarks: 'No bookmarks yet',
   invalidUrl: 'Invalid web address', bookmarkAdded: 'Bookmark added', bookmarkRemoved: 'Bookmark removed', resetControl: 'Reset to default',
@@ -392,6 +394,126 @@ const guestPresentationCss = (state: ProjectState) => {
   return rules.join('\n');
 };
 
+const collectPageElements = (document: Document, hiddenSelectorText: string): PageElementCandidate[] => {
+  const view = document.defaultView;
+  if (!view) return [];
+  const hiddenSelectors = selectorList(hiddenSelectorText);
+  const escapeCss = (value: string) => globalThis.CSS?.escape
+    ? globalThis.CSS.escape(value)
+    : String(value).replace(/[^a-zA-Z0-9_-]/g, '\\$&');
+  const stableClass = (value: string) => Boolean(value)
+    && value.length < 42
+    && !/^(css|jsx|sc|chakra|mantine|Mui)-/i.test(value)
+    && !/[0-9a-f]{8,}/i.test(value);
+  const selectorFor = (element: Element) => {
+    if (element.id) {
+      const selector = `#${escapeCss(element.id)}`;
+      try { if (document.querySelectorAll(selector).length === 1) return selector; } catch { /* Try the structural path. */ }
+    }
+    const tag = element.tagName.toLowerCase();
+    const classes = Array.from(element.classList || []).filter(stableClass).slice(0, 2);
+    if (classes.length) {
+      const selector = tag + classes.map((name) => `.${escapeCss(name)}`).join('');
+      try { if (document.querySelectorAll(selector).length <= 4) return selector; } catch { /* Try the structural path. */ }
+    }
+    const path: string[] = [];
+    let node: Element | null = element;
+    while (node && node !== document.body && path.length < 4) {
+      const nodeTag = node.tagName.toLowerCase();
+      const siblings = node.parentElement
+        ? Array.from(node.parentElement.children).filter((item) => item.tagName === node?.tagName)
+        : [];
+      path.unshift(nodeTag + (siblings.length > 1 ? `:nth-of-type(${siblings.indexOf(node) + 1})` : ''));
+      const selector = `body > ${path.join(' > ')}`;
+      try { if (document.querySelectorAll(selector).length === 1) return selector; } catch { /* Continue up the tree. */ }
+      node = node.parentElement;
+    }
+    return `body > ${path.join(' > ')}`;
+  };
+
+  const candidates = Array.from(document.querySelectorAll('header,nav,footer,aside,dialog,[role="dialog"],[role="banner"],[role="navigation"],[role="contentinfo"],[id],[class]'))
+    .filter((element) => {
+      const style = view.getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      const tag = element.tagName.toLowerCase();
+      const semantic = ['header', 'nav', 'footer', 'aside', 'dialog'].includes(tag) || Boolean(element.getAttribute('role'));
+      const directlyHidden = hiddenSelectors.some((selector) => { try { return element.matches(selector); } catch { return false; } });
+      const pageRoot = !semantic && rect.width >= view.innerWidth * .92 && rect.height >= view.innerHeight * .88;
+      return element.id !== '__rms_page_presentation'
+        && tag !== 'html'
+        && tag !== 'body'
+        && !pageRoot
+        && style.display !== 'none'
+        && (style.visibility !== 'hidden' || directlyHidden)
+        && rect.width > 24
+        && rect.height > 14;
+    })
+    .map((element) => {
+      const rect = element.getBoundingClientRect();
+      const style = view.getComputedStyle(element);
+      const tag = element.tagName.toLowerCase();
+      const semantic = ['header', 'nav', 'footer', 'aside', 'dialog'].includes(tag) || Boolean(element.getAttribute('role'));
+      const fixed = style.position === 'fixed' || style.position === 'sticky';
+      const area = Math.min(view.innerWidth * view.innerHeight, rect.width * rect.height);
+      const score = (semantic ? 1000000 : 0) + (fixed ? 750000 : 0) + area;
+      const text = (element.getAttribute('aria-label')
+        || element.getAttribute('role')
+        || element.id
+        || Array.from(element.classList || []).filter(stableClass).slice(0, 2).join('.')
+        || element.textContent
+        || tag).replace(/\s+/g, ' ').trim().slice(0, 54);
+      const selector = selectorFor(element);
+      let count = 1;
+      try { count = document.querySelectorAll(selector).length; } catch { /* Keep the single-element fallback. */ }
+      return { selector, label: text || tag, tag, count, score };
+    })
+    .sort((left, right) => right.score - left.score);
+
+  const seen = new Set<string>();
+  return candidates
+    .filter((item) => Boolean(item.selector) && !seen.has(item.selector) && Boolean(seen.add(item.selector)))
+    .slice(0, 32)
+    .map(({ score: _score, ...item }) => item);
+};
+
+const serializePageSvg = async (document: Document, width: number, height: number) => {
+  const view = document.defaultView;
+  if (!view) throw new Error('Preview document is not available.');
+  const output = documentToSVG(document, {
+    captureArea: new DOMRect(view.scrollX, view.scrollY, width, height),
+    keepLinks: false,
+  });
+  await inlineResources(output.documentElement);
+  output.documentElement.setAttribute('data-rms-vector-source', document.location.href);
+  return new XMLSerializer().serializeToString(output);
+};
+
+const rasterizeSvg = (svg: string, width: number, height: number, pixelRatio: number) => new Promise<string>((resolve, reject) => {
+  const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
+  const image = new Image();
+  image.onload = () => {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(width * pixelRatio));
+      canvas.height = Math.max(1, Math.round(height * pixelRatio));
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Canvas context is unavailable.');
+      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+      context.drawImage(image, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/png'));
+    } catch (error) {
+      reject(error);
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  };
+  image.onerror = () => {
+    URL.revokeObjectURL(url);
+    reject(new Error('Website preview could not be rendered.'));
+  };
+  image.src = url;
+});
+
 const materialSurface = (
   color: string,
   material: ProjectState['deviceMaterial'],
@@ -503,7 +625,6 @@ function App() {
   const [webviewNode, setWebviewNode] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ tone: 'good' | 'bad' | 'info'; text: string } | null>(null);
-  const [lastRaw, setLastRaw] = useState<string>();
   const [isPanning, setIsPanning] = useState(false);
   const [activePanel, setActivePanel] = useState<'camera' | 'background' | 'output' | 'advanced'>('camera');
   const [pageElements, setPageElements] = useState<PageElementCandidate[]>([]);
@@ -524,13 +645,13 @@ function App() {
   const previewCanvasRef = useRef<HTMLElement>(null);
   const compositionFrameRef = useRef<HTMLDivElement>(null);
   const deviceSettingsDockRef = useRef<HTMLDivElement>(null);
-  const screenshotInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileKindRef = useRef<'frame' | 'mask' | 'background'>('frame');
   const bookmarkMenuRef = useRef<HTMLDivElement>(null);
   const activeUrlRef = useRef(project.url);
   const addressEditingRef = useRef(false);
   const pendingNavigationRef = useRef<{ target: string; previous: string } | null>(null);
+  const webHistoryRef = useRef<{ entries: string[]; index: number }>({ entries: [project.url], index: 0 });
   const panDragRef = useRef<{ pointerId: number; x: number; y: number; cameraX: number; cameraY: number } | null>(null);
   const deviceDockDragRef = useRef<{ pointerId: number; x: number; y: number; originX: number; originY: number; maxX: number; maxY: number } | null>(null);
   const deviceDockDidDragRef = useRef(false);
@@ -562,8 +683,24 @@ function App() {
   }, []);
 
   const applyPagePresentation = useCallback(async () => {
-    if (!runtime.desktop || !webviewNode?.executeJavaScript) return;
     const css = guestPresentationCss(project);
+    if (!runtime.desktop) {
+      try {
+        const document = (webviewNode as HTMLIFrameElement | null)?.contentDocument;
+        if (!document) return;
+        let style = document.getElementById('__rms_page_presentation') as HTMLStyleElement | null;
+        if (!style) {
+          style = document.createElement('style');
+          style.id = '__rms_page_presentation';
+          (document.head || document.documentElement).appendChild(style);
+        }
+        style.textContent = css;
+      } catch {
+        // Cross-origin iframe documents cannot be modified by browser JavaScript.
+      }
+      return;
+    }
+    if (!webviewNode?.executeJavaScript) return;
     const script = `(() => {
       let style = document.getElementById('__rms_page_presentation');
       if (!style) {
@@ -578,7 +715,19 @@ function App() {
   }, [runtime.desktop, webviewNode, project.freezeAnimations, project.hideScrollbar, project.hideCursor, project.hidePageBackground, project.hiddenSelectors, project.customCss]);
 
   const refreshPageElements = useCallback(async () => {
-    if (!runtime.desktop || !webviewNode?.executeJavaScript) {
+    if (!runtime.desktop) {
+      setPageElementsLoading(true);
+      try {
+        const document = (webviewNode as HTMLIFrameElement | null)?.contentDocument;
+        setPageElements(document ? collectPageElements(document, project.hiddenSelectors) : []);
+      } catch {
+        setPageElements([]);
+      } finally {
+        setPageElementsLoading(false);
+      }
+      return;
+    }
+    if (!webviewNode?.executeJavaScript) {
       setPageElements([]);
       return;
     }
@@ -815,6 +964,19 @@ function App() {
     const start = () => setLoading(true);
     const stop = () => {
       setLoading(false);
+      if (!runtime.desktop) {
+        try {
+          const url = (webviewNode as HTMLIFrameElement).contentWindow?.location.href;
+          if (url && url !== 'about:blank') {
+            activeUrlRef.current = url;
+            setActiveUrl(url);
+            setProject((current) => current.url === url ? current : { ...current, url });
+            if (!addressEditingRef.current) setAddress(url);
+          }
+        } catch {
+          // The address is already known for cross-origin iframe navigation.
+        }
+      }
       void applyPagePresentation();
       void refreshPageElements();
     };
@@ -832,6 +994,10 @@ function App() {
       setLoading(false);
       setToast({ tone: 'bad', text: `${event.errorCode ?? ''} ${event.errorDescription ?? 'Load failed'}`.trim() });
     };
+    if (!runtime.desktop) {
+      webviewNode.addEventListener('load', stop);
+      return () => webviewNode.removeEventListener('load', stop);
+    }
     webviewNode.addEventListener('did-start-loading', start);
     webviewNode.addEventListener('did-stop-loading', stop);
     webviewNode.addEventListener('did-navigate', navigated);
@@ -844,7 +1010,7 @@ function App() {
       webviewNode.removeEventListener('did-navigate-in-page', navigated);
       webviewNode.removeEventListener('did-fail-load', failed);
     };
-  }, [webviewNode, applyPagePresentation, refreshPageElements]);
+  }, [runtime.desktop, webviewNode, applyPagePresentation, refreshPageElements]);
 
   useEffect(() => {
     void applyPagePresentation();
@@ -875,10 +1041,41 @@ function App() {
     setAddress(url);
     pendingNavigationRef.current = { target: url, previous: activeUrlRef.current };
     activeUrlRef.current = url;
+    setLoading(true);
     setActiveUrl(url);
+    if (!runtime.desktop) {
+      const history = webHistoryRef.current;
+      const retained = history.entries.slice(0, history.index + 1);
+      if (retained.at(-1) !== url) retained.push(url);
+      webHistoryRef.current = { entries: retained.slice(-24), index: Math.min(retained.length - 1, 23) };
+    }
     setRecent((items) => [url, ...items.filter((item) => item !== url)].slice(0, 12));
     setBookmarkMenuOpen(false);
     if (runtime.desktop && activeUrl === url) webviewNode?.reload?.();
+  };
+
+  const navigateWebHistory = (direction: -1 | 1) => {
+    const history = webHistoryRef.current;
+    const nextIndex = clamp(history.index + direction, 0, history.entries.length - 1);
+    if (nextIndex === history.index) return;
+    history.index = nextIndex;
+    const url = history.entries[nextIndex];
+    activeUrlRef.current = url;
+    setAddress(url);
+    setActiveUrl(url);
+    setLoading(true);
+    setProject((current) => ({ ...current, url }));
+  };
+
+  const reloadPreview = () => {
+    if (runtime.desktop) {
+      webviewNode?.reload?.();
+      return;
+    }
+    if (webviewNode) {
+      setLoading(true);
+      webviewNode.src = activeUrl;
+    }
   };
 
   const toggleBookmark = (value: string) => {
@@ -1124,9 +1321,6 @@ function App() {
   };
 
   const captureCurrent = async (captureFrame = frame, captureProject = project, previewLayout = readPreviewLayout()): Promise<CaptureResult> => {
-    if (!runtime.desktop || !window.rms || !webviewNode?.getWebContentsId) {
-      return lastRaw ? { ok: true, dataUrl: lastRaw } : { ok: false, error: copy.noCapture };
-    }
     const dimensions = resolveOutputDimensions(
       captureProject.exportSettings,
       previewLayout ? previewLayout.viewportWidth / Math.max(1, previewLayout.viewportHeight) : 16 / 9,
@@ -1143,6 +1337,33 @@ function App() {
     const requiredDensity = Math.max(apertureWidth / captureViewport.width, apertureHeight / captureViewport.height);
     const pixelRatio = Math.max(1.5, Math.min(4, requiredDensity * 1.4));
     setLoading(true);
+    if (!runtime.desktop) {
+      try {
+        const document = (webviewNode as HTMLIFrameElement | null)?.contentDocument;
+        if (!document) throw new Error(copy.noCapture);
+        let style = document.getElementById('__rms_page_presentation') as HTMLStyleElement | null;
+        if (!style) {
+          style = document.createElement('style');
+          style.id = '__rms_page_presentation';
+          (document.head || document.documentElement).appendChild(style);
+        }
+        style.textContent = guestPresentationCss(captureProject);
+        await document.fonts?.ready;
+        const svg = await serializePageSvg(document, captureViewport.width, captureViewport.height);
+        const dataUrl = await rasterizeSvg(svg, captureViewport.width, captureViewport.height, pixelRatio);
+        return { ok: true, dataUrl, width: Math.round(captureViewport.width * pixelRatio), height: Math.round(captureViewport.height * pixelRatio), url: activeUrl };
+      } catch (error) {
+        const result = { ok: false, error: error instanceof DOMException && error.name === 'SecurityError' ? copy.noCapture : error instanceof Error ? error.message : copy.noCapture };
+        showToast(`${copy.captureFailed}: ${result.error}`, 'bad');
+        return result;
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (!window.rms || !webviewNode?.getWebContentsId) {
+      setLoading(false);
+      return { ok: false, error: copy.noCapture };
+    }
     try {
       const result = await window.rms.capturePage({
         webContentsId: webviewNode.getWebContentsId(),
@@ -1159,8 +1380,7 @@ function App() {
         customCss: captureProject.customCss,
         hiddenSelectors: captureProject.hiddenSelectors,
       });
-      if (result.ok && result.dataUrl) setLastRaw(result.dataUrl);
-      else showToast(`${copy.captureFailed}: ${result.error || ''}`, 'bad');
+      if (!result.ok || !result.dataUrl) showToast(`${copy.captureFailed}: ${result.error || ''}`, 'bad');
       return result;
     } catch (error) {
       const result = { ok: false, error: error instanceof Error ? error.message : String(error) };
@@ -1171,12 +1391,34 @@ function App() {
     }
   };
 
-  const captureCurrentSvg = async (captureFrame = frame, captureProject = project) => {
-    if (!runtime.desktop || !window.rms || !webviewNode?.getWebContentsId) {
-      return { ok: false, error: language === 'tr' ? 'Vektör website yakalama masaüstü sürümünde kullanılabilir.' : 'Vector website capture is available in the desktop build.' };
-    }
+  const captureCurrentSvg = async (captureFrame = frame, captureProject = project): Promise<VectorCaptureResult> => {
     const captureViewport = responsiveViewportSize(captureFrame, captureProject);
     setLoading(true);
+    if (!runtime.desktop) {
+      try {
+        const document = (webviewNode as HTMLIFrameElement | null)?.contentDocument;
+        if (!document) throw new Error(copy.noCapture);
+        let style = document.getElementById('__rms_page_presentation') as HTMLStyleElement | null;
+        if (!style) {
+          style = document.createElement('style');
+          style.id = '__rms_page_presentation';
+          (document.head || document.documentElement).appendChild(style);
+        }
+        style.textContent = guestPresentationCss(captureProject);
+        await document.fonts?.ready;
+        return { ok: true, svg: await serializePageSvg(document, captureViewport.width, captureViewport.height), width: captureViewport.width, height: captureViewport.height, url: activeUrl };
+      } catch (error) {
+        const result = { ok: false, error: error instanceof DOMException && error.name === 'SecurityError' ? copy.noCapture : error instanceof Error ? error.message : copy.noCapture };
+        showToast(`${copy.captureFailed}: ${result.error}`, 'bad');
+        return result;
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (!window.rms || !webviewNode?.getWebContentsId) {
+      setLoading(false);
+      return { ok: false, error: copy.noCapture };
+    }
     try {
       const result = await window.rms.capturePageSvg({
         webContentsId: webviewNode.getWebContentsId(),
@@ -1644,9 +1886,9 @@ function App() {
 
         <main className="main-column">
           <div className="browser-bar panel">
-            <button className="browser-icon" onClick={() => webviewNode?.canGoBack?.() && webviewNode.goBack()}><ArrowLeft size={16} /></button>
-            <button className="browser-icon" onClick={() => webviewNode?.canGoForward?.() && webviewNode.goForward()}><ArrowRight size={16} /></button>
-            <button className="browser-icon" onClick={() => runtime.desktop ? webviewNode?.reload?.() : navigate()}><RefreshCw size={15} /></button>
+            <button className="browser-icon" onClick={() => runtime.desktop ? (webviewNode?.canGoBack?.() && webviewNode.goBack()) : navigateWebHistory(-1)}><ArrowLeft size={16} /></button>
+            <button className="browser-icon" onClick={() => runtime.desktop ? (webviewNode?.canGoForward?.() && webviewNode.goForward()) : navigateWebHistory(1)}><ArrowRight size={16} /></button>
+            <button className="browser-icon" onClick={reloadPreview}><RefreshCw size={15} /></button>
             <form className="address-field" onSubmit={(event) => { event.preventDefault(); navigate(address); }}>
               <Globe2 size={14} />
               <input
@@ -1738,7 +1980,6 @@ function App() {
                 {frame.kind === 'phone' && !project.phoneLeftControlsVisible && <button className="restore-component-button" type="button" title={language === 'tr' ? 'Sol yan tuşları geri getir' : 'Restore left side buttons'} aria-label={language === 'tr' ? 'Sol yan tuşları geri getir' : 'Restore left side buttons'} onClick={() => updateProject({ phoneLeftControlsVisible: true })}><RotateCcw size={13} /><span>{language === 'tr' ? 'Sol tuşlar' : 'Left buttons'}</span></button>}
                 {frame.kind === 'phone' && !project.phoneRightButtonVisible && <button className="restore-component-button" type="button" title={language === 'tr' ? 'Sağ yan tuşu geri getir' : 'Restore right side button'} aria-label={language === 'tr' ? 'Sağ yan tuşu geri getir' : 'Restore right side button'} onClick={() => updateProject({ phoneRightButtonVisible: true })}><RotateCcw size={13} /><span>{language === 'tr' ? 'Sağ tuş' : 'Right button'}</span></button>}
               </div>
-              {!runtime.desktop && <button onClick={() => screenshotInputRef.current?.click()}><ImagePlus size={14} /> {copy.uploadCapture}</button>}
             </div>
             <div className="composition-frame-controls" aria-label={language === 'tr' ? 'Çıktı kadrajı' : 'Output frame'}>
               {(['1:1', '4:5', '16:9'] as CompositionFrameRatio[]).map((ratio) => <button
@@ -1793,7 +2034,14 @@ function App() {
                       {runtime.desktop ? (
                         <webview ref={(node) => setWebviewNode(node)} src={activeUrl} partition="persist:responsive-mockup-studio" webpreferences="contextIsolation=yes,sandbox=yes,backgroundThrottling=no" style={browserStyle} />
                       ) : (
-                        <iframe title="Live website preview" src={activeUrl} style={browserStyle} sandbox="allow-forms allow-modals allow-popups allow-same-origin allow-scripts" />
+                        <iframe
+                          ref={(node) => setWebviewNode(node)}
+                          title="Live website preview"
+                          src={activeUrl}
+                          style={{ ...browserStyle, cursor: project.hideCursor ? 'none' : undefined, pointerEvents: project.hideCursor ? 'none' : undefined }}
+                          scrolling={project.hideScrollbar ? 'no' : 'auto'}
+                          sandbox="allow-forms allow-modals allow-popups allow-same-origin allow-scripts"
+                        />
                       )}
                       {project.matte && <div className="matte-layer" />}
                       {project.glare > 0 && <div className="glare-layer" style={{ opacity: project.glare / 100 }} />}
@@ -2000,7 +2248,6 @@ function App() {
         </aside>
       </div>
 
-      <input ref={screenshotInputRef} hidden type="file" accept="image/png,image/jpeg,image/webp" onChange={async (event) => { const file = event.target.files?.[0]; if (file) setLastRaw(await dataUrlFromFile(file)); event.target.value = ''; }} />
       <input ref={fileInputRef} hidden type="file" accept="image/png,image/jpeg,image/webp" onChange={async (event) => { await handleGenericFile(event.target.files?.[0]); event.target.value = ''; }} />
       {toast && <div className={`toast ${toast.tone}`}>{toast.tone === 'good' ? <Check size={16} /> : toast.tone === 'bad' ? <CircleAlert size={16} /> : <Sparkles size={16} />}<span>{toast.text}</span><button onClick={() => setToast(null)}><X size={14} /></button></div>}
     </div>

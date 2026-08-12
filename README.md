@@ -26,7 +26,7 @@ Responsive Mockup Studio keeps the website, viewport, device geometry, and final
 
 Enter a URL and open it inside the selected screen. The website follows the actual screen area when the device or viewport changes, so responsive breakpoints remain synchronized with the mockup instead of leaving gaps or using a fixed screenshot size.
 
-The Windows edition uses an embedded Chromium browser for live external websites, navigation, sessions, and capture. The static web edition uses the browser's normal embedding rules; websites that block iframe or cross-origin access may require the Windows edition or an uploaded screenshot.
+The Windows edition uses an embedded Chromium browser for live external websites, navigation, sessions, and capture. The web edition uses the same editor, device controls, page-appearance controls, bookmarks, history, and export workflow. Browser security still determines whether a third-party website permits iframe display and DOM access; unrestricted cross-origin capture remains available in the Windows edition.
 
 The browser workspace includes:
 
@@ -37,7 +37,7 @@ The browser workspace includes:
 - Recent URLs and persistent bookmarks.
 - Optional scrollbar, cursor, animation, and page-background controls.
 - Custom CSS and safe visibility controls for discovered page elements.
-- Screenshot upload when a live page cannot be embedded.
+- Browser-native live preview with the same viewport, frame, material, page-appearance, and export controls as the Windows editor.
 
 ## Device mockups
 

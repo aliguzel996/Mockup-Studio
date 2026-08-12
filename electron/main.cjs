@@ -395,7 +395,7 @@ async function capturePageSvg(options) {
     let svg = await target.executeJavaScript(`(async () => {
       ${library}
       const area = new DOMRect(0, ${Math.max(0, Number(options.scrollY) || 0)}, ${viewportWidth}, ${viewportHeight});
-      const output = RMSSVG.documentToSVG(document, { captureArea: area, keepLinks: true });
+      const output = RMSSVG.documentToSVG(document, { captureArea: area, keepLinks: false });
       await RMSSVG.inlineResources(output.documentElement);
       output.documentElement.setAttribute('data-rms-vector-source', location.href);
       return new XMLSerializer().serializeToString(output);
