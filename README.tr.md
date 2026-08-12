@@ -4,172 +4,109 @@
 
 [English](README.md) · [Türkçe](README.tr.md)
 
-Responsive Mockup Studio, gerçek responsive web sitelerini ayarlanabilir teknik cihaz mockup'larının içine yerleştiren bir YCSWU Tools creative uygulamasıdır. Statik web uygulaması, Windows kurulum dosyası ve kurulumsuz Portable EXE olarak yayınlanır.
+Responsive Mockup Studio, canlı web sitelerini düzenli ve sunuma hazır cihaz görsellerine dönüştüren bir YCSWU Tools creative uygulamasıdır. Responsive tarayıcı viewport'unu, ayarlanabilir cihaz çerçevelerini, kompozisyon kontrollerini ve profesyonel dışa aktarma seçeneklerini tek çalışma alanında birleştirir.
 
 ![Responsive Mockup Studio arayüzü](docs/responsive-mockup-studio.png)
 
-## Ne yapar?
+## Hangi problemi çözer?
 
-- Adres çubuğuna yazılan URL'yi Enter'a basıldığında seçili cihaz ekranında açar.
-- Windows sürümünde canlı gezinme ve kalıcı tarayıcı oturumlarıyla gerçek gömülü Chromium webview kullanır.
-- Otomatik responsive ölçülendirme ile elle girilen özel CSS viewport ölçüsü arasında geçiş yapar.
-- Özel bilgisayar, tablet ve telefon çerçevelerinin yanında teknik oranı kilitli hazır çerçeveler sunar.
-- Çerçeve geometrisi değiştiğinde website içeriğini fiziksel ekran alanıyla eşzamanlı tutar.
-- Yakalanan sayfayı çoğaltmadan veya döşemeden önizlemede görülen kompozisyonu dışa aktarır.
+Bir website mockup'ı hazırlamak çoğunlukla tarayıcı, ekran görüntüsü aracı, görsel editörü ve ayrı cihaz dosyaları arasında gidip gelmeyi gerektirir. Website ölçüsü değiştiğinde ekran görüntüsü çerçeveyle eşleşmeyebilir; yüksek çözünürlüklü çıktılarda sayfa esneyebilir, boşluk bırakabilir veya tekrarlanabilir.
 
-## Cihaz ve çerçeve sistemi
+Responsive Mockup Studio; websiteyi, viewport'u, cihaz geometrisini ve çıktı kompozisyonunu birbirine bağlı tutar. Kullanıcı gerçek bir URL'yi masaüstü, tablet ve telefon ölçülerinde deneyebilir, cihazın içinde konumlandırabilir, görünümünü düzenleyebilir ve önizlemede gördüğü kompozisyonu dışa aktarabilir.
 
-- Kompakt özel Bilgisayar, Tablet ve Telefon seçenekleri.
-- 16:9, 16:10, 21:9 ultrawide, 32:9 super-ultrawide, çift çözünürlüklü masaüstü, laptop, tablet ve telefon oranları.
-- Marka/model isimleri kullanılmaz; hazır çerçeveler geometri ve en-boy oranıyla tanımlanır.
-- Hazır çerçevelerin teknik ölçüleri kilitli kalırken desteklenen görünüm özellikleri değiştirilebilir.
-- Native renk seçici ve doğrudan HEX girişiyle cihaz rengi.
-- Pürüzlülük ve yansıma kontrollü materyal seçenekleri.
-- Özel cihazlarda ayarlanabilir dış çerçeve kalınlığı ve fiziksel köşe radiusları.
-- Özel çerçevelerde bağımsız ekran eni ve boyu.
-- Mat ekran ve cam yansıması kontrolleri.
-- Ayarlanabilir parça gradient açısı, boyutu ve yumuşaklığı.
-- Yalnızca fiziksel cihazı etkileyen wireframe modu; website ekranı görünür kalır.
-- Camın üzerine taşmayan, dışa doğru büyüyen wireframe kontür kalınlığı ve renk seçimi.
-- Desteklenen kaldırılabilir parçalar: monitör borusu, taban, cihaz detayı, laptop ön dudağı ve telefon yan tuşları.
-- Üzerine gelince görünen X, onay penceresi ve viewport barında doğrudan geri getirme kontrolleri.
-- Thumbnail'li, local olarak kalıcı kayıtlı özel cihazlar ve doğrudan boş-ekran PNG dışa aktarma.
-- Kalıcı hazır çerçeve favorileri.
+## Kimler için?
 
-## Responsive önizleme ve kompozisyon
+- Portfolyo, case study, sunum ve sosyal medya görselleri hazırlayan tasarımcılar.
+- Responsive davranışı kontrol ederken aynı anda sunuma hazır çıktı almak isteyen geliştiriciler.
+- Birden fazla müşteri veya sayfa için tutarlı cihaz görselleri üreten ajanslar.
+- Web sitelerini farklı viewport ölçülerinde belgeleyen ürün ekipleri.
+- Mockup'ları tekrar tekrar görsel editöründe kurmak istemeyen içerik üreticileri.
 
-- Masaüstü, Tablet ve Telefon kısayolları ilgili özel çerçeve ailesini otomatik seçer.
-- AUTO viewport, letterbox boşluğu bırakmadan gerçek cihaz ekranını ve responsive breakpoint'leri takip eder.
-- En/boy yer değiştirme ve sıfırlama kontrollü manual ölçü modu.
-- Orta mouse tuşuyla sürükleme Camera X/Y'yi; mouse tekerleği Camera Zoom'u değiştirir.
-- Kamera zoom, X/Y, Z eğimi, vertical tilt ve horizontal tilt ayarları.
-- Her slider için reset ikonu ve slider'a çift tıklayınca varsayılana dönme.
-- Bağımsız Ortala tuşu cihazı tam geometrik merkeze döndürür.
+## Canlı responsive website akışı
+
+Bir URL girildiğinde website seçili cihaz ekranında açılır. Cihaz veya viewport değiştiğinde website gerçek ekran alanını takip eder; responsive breakpoint'ler çerçeveyle eşzamanlı kalır ve sabit ekran görüntüsünden kaynaklanan boşluklar oluşmaz.
+
+Windows sürümü canlı harici siteler, gezinme, oturumlar ve capture için gömülü Chromium kullanır. Statik web sürümü tarayıcının normal gömme kurallarına uyar; iframe veya cross-origin erişimini engelleyen sitelerde Windows sürümü ya da yüklenen bir ekran görüntüsü kullanılabilir.
+
+Tarayıcı çalışma alanı şunları içerir:
+
+- Masaüstü, tablet ve telefon kısayolları.
+- Otomatik responsive ölçü veya elle girilen en ve boy.
+- En-boy değiştirme ve sıfırlama kontrolleri.
+- Geri, ileri ve yenileme işlevli düzenlenebilir adres çubuğu.
+- Recent URL listesi ve kalıcı bookmark'lar.
+- Scrollbar, imleç, animasyon ve sayfa zemini kontrolleri.
+- Özel CSS ve bulunan sayfa elemanları için güvenli görünürlük yönetimi.
+- Canlı sayfanın gömülemediği durumlar için ekran görüntüsü yükleme.
+
+## Cihaz mockup'ları
+
+Özel bilgisayar, tablet veya telefon çerçevesi seçilebilir ya da hazır bir ekran oranıyla başlanabilir. Hazır çerçeveler teknik oranlarını korurken desteklenen görünüm özellikleri değiştirilebilir.
+
+Cihaz kontrolleri:
+
+- Renk seçici ve doğrudan HEX girişiyle cihaz rengi.
+- Materyal, pürüzlülük, yansıma ve yüzey görünümü.
+- Özel cihazlarda çerçeve kalınlığı, ekran boyutu ve köşe geometrisi.
+- Mat ekran ve cam yansıması.
+- Parça gradient yönü, boyutu ve yumuşaklığı.
+- Bağımsız kontür rengi ve kalınlığı bulunan, yalnızca cihazı etkileyen wireframe modu.
+- Desteklenen cihazlarda monitör borusu, taban, cihaz detayı, laptop dudağı ve telefon yan tuşlarını kaldırma veya geri getirme.
+- Thumbnail'li kayıtlı özel cihazlar ve hazır çerçeveler için kalıcı favoriler.
+
+Wireframe açıldığında website görünür kalır; kontür, ekran içeriğini kapatmak yerine camın dışına doğru büyür.
+
+## Kompozisyon ve kamera
+
+Cihaz yerleşimi çıktıdan sonra düzeltilmek yerine doğrudan önizleme alanında hazırlanır.
+
+- Orta mouse tuşuyla önizlemede hareket etme.
+- Mouse tekerleğiyle zoom.
+- Kamera X/Y, rotasyon, vertical tilt ve horizontal tilt ayarları.
+- Her kontrolü ayrı sıfırlama veya slider'a çift tıklayarak varsayılana dönme.
+- Tek tuşla cihazı geometrik merkeze alma.
 - İsteğe bağlı 1:1, 4:5 ve 16:9 kompozisyon frame'leri.
-- Yatay ve dikey yön seçimi.
-- Etkin orana tekrar basınca frame seçiminden çıkıp tam önizlemeye dönme.
-- Frame dışı maskeleme yalnız önizleme canvas'ını etkiler; UI kontrolleri üstte çalışmaya devam eder.
-- Küçültülmüş tutamacı dahil sürüklenebilir dört kolonlu Cihaz Ayarları paneli.
-- Kapatılabilir sol Çerçeveler paneli; cihaz boşalan önizleme alanının merkezinde kalır.
+- Yatay ve dikey kompozisyon seçimi.
+- Cihaz Ayarları panelini görselin önünden uzaklaştırmak için sürükleme.
+- Sol Çerçeveler panelini kapatarak cihaz merkezde kalırken önizleme alanını büyütme.
 
-## Tarayıcı akışı
+## Arka plan tasarımı
 
-- URL normalizasyonu ve Enter ile çalışan adres çubuğu.
-- Kalıcı Recent URLs listesi.
-- Adres çubuğundaki kalpten veya Recent URLs listesinden kalıcı bookmark yönetimi.
-- Desteklenen ortamlarda gerçek Chromium geri/ileri/yenile davranışı.
-- Önizleme ve exporta birlikte uygulanan scrollbar ve imleç gizleme.
-- Animasyonları dondurma ve sayfa zeminini gizleme.
-- Özel CSS uygulama.
-- Header, navigation, footer, dialog ve fixed elemanlar gibi kullanışlı sayfa öğelerini otomatik bulma.
-- Tehlikeli kök seçicilerin tüm siteyi silmesini engelleyen güvenli gözle gizle/geri getir sistemi.
+Uygulamadan çıkmadan kompozisyonun çevresi hazırlanabilir:
 
-## Arka plan ve görünüm
-
-- Siyah, beyaz, şeffaf, özel renk, görsel ve çok duraklı gradient arka planlar.
-- Linear veya radial gradient.
-- Doğrudan HEX girişi ve pozisyon kontrollü sınırsız gradient rengi.
+- Siyah, beyaz, şeffaf veya özel renkli arka plan.
+- Yüklenen arka plan görselleri.
+- Linear ve radial gradient.
+- HEX ve pozisyon kontrollü istenildiği kadar gradient rengi.
+- Gradient açısı ve geçiş davranışı.
 - Dark ve light uygulama teması.
-- Türkçe ve İngilizce arayüz.
-- Yerel paketlenen Space Mono; font CDN'i gerekmez.
-- Keskin siyah-beyaz YCSWU UI: bütün panel, buton, alan, switch ve menü köşeleri `0px` radius kullanır.
-- Yüksek opaklık, güçlü blur ve yüksek yazı kontrastlı mat glass Cihaz Ayarları paneli.
 
 ## Dışa aktarma
 
-- PNG, şeffaf PNG, JPG, WebP ve SVG.
-- Ayarlanabilir uzun kenar, DPI ve JPEG/WebP kalitesi.
-- Tam aktif önizleme kompozisyonu veya seçilen frame kırpımı.
-- Tek viewport yüksek yoğunluklu Chromium capture; 2×2 sayfa döşemesi oluşmaz.
-- Dış köşeleri gerçekten şeffaf PNG.
-- SVG'de gerçek vektörel cihaz geometrisi ve CSS şekilleri.
-- Website metnini fonttan bağımsız vektör path'lerine çevirme; SVG başka bilgisayarda font değiştirmez.
-- SVG içinde `foreignObject` kullanılmaz.
-- Uygun website SVG varlıkları inline vektör kalır; fotoğraflar bitmap olarak korunur.
-- Export motorları yalnız gerektiğinde yüklenir. Raster kodlama asenkron `toBlob` kullanır ve gereksiz tam boy canvas kopyası üretmez.
+Aktif önizleme veya seçilen kompozisyon frame'i şu formatlarda dışa aktarılabilir:
 
-## Web ve Windows farkı
+- PNG
+- Şeffaf PNG
+- JPG
+- WebP
+- SVG
 
-Windows sürümü Electron'un gömülü Chromium webview'ını kullanır; normal harici sitelerde gezinip mevcut site oturumunu koruyarak capture alabilir. Statik web sürümü tarayıcının iframe ve cross-origin kurallarına uyar. Gömülmeyi reddeden uzak siteler web sürümünde görüntülenmeyebilir; sınırsız harici website capture bu nedenle Windows sürümünün özelliğidir.
+Raster çıktılarda uzun kenar, DPI ve JPEG/WebP kalitesi ayarlanabilir. Şeffaf PNG, cihazın dışındaki piksellerin şeffaflığını korur.
 
-Çerçeve düzenleme, kamera, kompozisyon, arka plan ve local kayıt özellikleri iki sürümde de ortaktır.
+SVG çıktıda cihaz geometrisi ve uyumlu website grafikleri vektörel kalır. Website metinleri fonttan bağımsız vektör path'lerine dönüştürüldüğü için dosya başka bir bilgisayarda açıldığında yazı görünümü değişmez. Fotoğraflar gerektiğinde gömülü bitmap olarak korunur.
 
-## Gizlilik ve kayıt
+Kaydedilen cihazlar, başka tasarım akışlarında kullanılmak üzere ekranı boş ve zemini şeffaf PNG olarak da dışa aktarılabilir.
 
-- Bookmark, Recent URL, favori, kayıtlı cihaz ve editör ayarları kullanıcının yerel tarayıcı/uygulama profilinde saklanır.
-- Statik web paketi veritabanı veya server-side runtime gerektirmez.
-- Eski özel proje dosyası aç/kaydet sistemi bulunmaz.
+## Yerel çalışma alanı ve gizlilik
 
-## Geliştirme
+Bookmark'lar, Recent URL listesi, favoriler, kayıtlı cihazlar ve editör tercihleri yerel tarayıcı veya uygulama profilinde saklanır. Statik web sürümü veritabanı, hesap veya server-side uygulama altyapısı gerektirmez.
 
-Gereksinimler: Node.js 20+, npm ve Windows paketlemesi için Windows.
+## Sürümler
 
-```powershell
-npm.cmd install
-npm.cmd run dev
-```
+- **Windows Setup:** tam Chromium capture akışına sahip kurulan masaüstü uygulaması.
+- **Windows Portable:** kurulum gerektirmeyen aynı masaüstü deneyimi.
+- **Web:** normal bir web sunucusunda veya cPanel hesabında çalışabilen statik tarayıcı sürümü.
 
-Web uygulamasını doğrula ve derle:
+Responsive Mockup Studio, **YCSWU Tools** ailesinin bir parçasıdır.
 
-```powershell
-npm.cmd run qa
-```
-
-Web, kaynak, Setup ve Portable paketlerini üret:
-
-```powershell
-npm.cmd run release:all
-```
-
-Önemli komutlar:
-
-- `npm.cmd run typecheck` — TypeScript doğrulaması.
-- `npm.cmd run test:unit` — kaynak ve regresyon testleri.
-- `npm.cmd run build:web` — production statik web derlemesi.
-- `npm.cmd run dist:win` — Windows Setup ve Portable derlemesi.
-- `npm.cmd run release:all` — eksiksiz release ve SHA-256 manifestleri.
-
-## cPanel kurulumu
-
-Hazır arşiv: `Responsive-Mockup-Studio-Web-cPanel-1.2.7.zip`
-
-Hedef URL:
-
-```text
-https://ycswu.co/mockup-studio/
-```
-
-`public_html/mockup-studio` klasörünü oluştur, ZIP'i bu klasöre yükle ve burada çıkart. `index.html` doğrudan `mockup-studio` klasörünün içinde olmalı; arada ikinci bir paket klasörü bulunmamalı. Paket göreli uygulama asset yolları, `DirectoryIndex`, SPA fallback, cache/sıkıştırma kuralları, `robots.txt`, `sitemap.xml`, SoftwareApplication JSON-LD, Open Graph verileri, web manifest ve `llms.txt` içerir.
-
-Adım adım kontrol için [DEPLOY-CPANEL-TR.md](DEPLOY-CPANEL-TR.md) dosyasına bak.
-
-## Kalite doğrulaması
-
-v1.2.7 release'i şu kontrollerden geçti:
-
-- 32 unit/regresyon testi.
-- Kaynak, Portable ve kurulu Setup Electron smoke testleri.
-- Sıfır uygulama hatasıyla 58 runtime assertion.
-- Üç gerçek site ve birden fazla responsive oran capture'ı.
-- 4000 px / 300 DPI raster export.
-- Şeffaf, frame'li, materyalli, wireframe ve boş kayıtlı cihaz exportları.
-- Sıfır text node, sıfır `foreignObject` ve fonttan bağımsız outline ile native SVG/YCSWU SVG doğrulaması.
-- Gerçek sessiz kurulum, kurulu uygulamayı çalıştırma, uninstall ve kurulum dizininin silinmesi.
-- Web ZIP'ini açıp HTTP üzerinden index ve asset smoke testi.
-
-## Proje yapısı
-
-```text
-electron/     Electron main process, preload ve SVG metin outline motoru
-public/       Web metadata, SEO dosyaları, ikon ve sosyal paylaşım görseli
-scripts/      Asset, vector bundle ve release paketleme scriptleri
-src/          React editör, geometri, Canvas ve SVG kompozisyon motorları
-tests/        Unit, regresyon ve build doğrulama testleri
-metadata/     YCSWU Tools manifesti
-```
-
-## Lisans
-
-MIT. [LICENSE](LICENSE) dosyasına bak.
-
-Ali Guzel / YCSWU tarafından geliştirildi.
+MIT lisanslıdır. Ali Guzel / YCSWU tarafından geliştirilmiştir.

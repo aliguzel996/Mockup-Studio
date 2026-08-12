@@ -1,173 +1,112 @@
 # Responsive Mockup Studio
 
-<p align="center"><img src="docs/logo.png" width="256" alt="Responsive Mockup Studio logo: flat double-outline frame on black"></p>
+<p align="center"><img src="docs/logo.png" width="256" alt="Responsive Mockup Studio logo: a flat double-outline frame on black"></p>
 
 [English](README.md) · [Türkçe](README.tr.md)
 
-Responsive Mockup Studio is a YCSWU Tools creative application for placing real responsive websites inside configurable technical device mockups. It ships as a static web application, a Windows installer and a portable Windows executable.
+Responsive Mockup Studio is a YCSWU Tools creative application for turning live websites into polished device presentations. It combines a responsive browser viewport, configurable device frames, composition controls, and production-ready export in one workspace.
 
 ![Responsive Mockup Studio interface](docs/responsive-mockup-studio.png)
 
-## What it does
+## The problem it solves
 
-- Opens a URL inside the selected mockup screen when Enter is pressed.
-- Uses a real embedded Chromium webview in the Windows build, including live navigation and persistent browser sessions.
-- Switches between automatic responsive sizing and an explicit custom CSS viewport.
-- Provides custom desktop, tablet and phone frames plus locked ready-made aspect-ratio presets.
-- Keeps website content synchronized with the physical screen area when frame geometry changes.
-- Exports the composition visible in the preview rather than tiling or duplicating the captured page.
+Creating a website mockup usually means switching between a browser, screenshot utility, image editor, and separate device assets. The result can become inaccurate when the website changes size, the screenshot no longer matches the frame, or a high-resolution export stretches or repeats the page.
 
-## Device and frame system
+Responsive Mockup Studio keeps the website, viewport, device geometry, and final composition connected. A designer can test a real URL at desktop, tablet, and phone sizes, position it inside a device, adjust the visual treatment, and export the same composition shown in the preview.
 
-- Compact custom-frame choices for computer, tablet and phone.
-- Ready frames for 16:9, 16:10, 21:9 ultrawide, 32:9 super-ultrawide, dual-resolution desktop, laptop, tablet and phone proportions.
-- Manufacturer names are deliberately omitted; ready frames are identified by geometry and aspect ratio.
-- Ready-frame dimensions stay technically locked while supported appearance properties remain editable.
-- Frame color input with a native picker and direct HEX entry.
-- Material presets with roughness and reflectivity controls.
-- Adjustable outer frame thickness and physical corner radii on custom devices.
-- Independent screen width and height controls on custom frames.
-- Matte-screen and glass-reflection controls.
-- Adjustable part gradient angle, size and softness.
-- Wireframe mode for the physical device only; the website screen remains visible.
-- Adjustable wireframe color and outward contour thickness so the outline does not cover the glass.
-- Supported removable parts: monitor stem, base, device detail, laptop front lip and phone side controls.
-- Hover removal with confirmation, plus immediate restore controls in the viewport toolbar.
-- Saved custom devices with thumbnails, persistent local storage and direct empty-device PNG export.
-- Persistent ready-frame favorites.
+## Who it is for
 
-## Responsive preview and composition
+- Designers preparing portfolio, case-study, pitch, and social presentation images.
+- Developers checking responsive behavior while creating presentation-ready output.
+- Agencies producing consistent device visuals for several clients or pages.
+- Product teams documenting websites across multiple viewport sizes.
+- Creators who need reusable mockups without rebuilding them in an image editor.
 
-- Desktop, tablet and phone breakpoint shortcuts automatically select the matching custom frame family.
-- Automatic viewport mode tracks the actual device screen and responsive breakpoints without letterboxing.
-- Manual width/height mode with swap and reset controls.
-- Middle-mouse drag updates Camera X/Y; mouse wheel updates Camera Zoom.
-- Camera zoom, X/Y, Z rotation, vertical tilt and horizontal tilt.
-- Per-slider reset controls and double-click-to-reset behavior.
-- A standalone center control returns the device to the exact geometric center.
-- Optional 1:1, 4:5 and 16:9 composition frames.
-- Landscape and portrait orientation controls.
-- Clicking an active ratio again exits framing and returns to the full preview composition.
-- Frame-exterior masking affects only the preview canvas; application controls stay interactive above it.
-- Draggable four-column Device Settings drawer, including its collapsed handle.
-- Collapsible left Frames panel; the preview expands into the released area while keeping the device centered.
+## Live responsive website workflow
 
-## Browser workflow
+Enter a URL and open it inside the selected screen. The website follows the actual screen area when the device or viewport changes, so responsive breakpoints remain synchronized with the mockup instead of leaving gaps or using a fixed screenshot size.
 
-- Editable address bar with URL normalization and Enter navigation.
-- Persistent recent URL history.
-- Persistent bookmarks from either the address-bar heart or the Recent URLs list.
-- Back/forward/reload behavior supplied by the live Chromium view where available.
-- Optional scrollbar and pointer hiding applied to both preview and export.
-- Optional animation freeze and page-background removal.
-- Custom CSS injection.
-- Automatic discovery of useful page elements such as headers, navigation, footers, dialogs and fixed elements.
-- Eye controls hide or restore discovered CSS elements without allowing dangerous root selectors to blank the entire page.
+The Windows edition uses an embedded Chromium browser for live external websites, navigation, sessions, and capture. The static web edition uses the browser's normal embedding rules; websites that block iframe or cross-origin access may require the Windows edition or an uploaded screenshot.
 
-## Backgrounds and appearance
+The browser workspace includes:
 
-- Black, white, transparent, custom-color, image and multi-stop gradient backgrounds.
-- Linear or radial gradients.
-- Unlimited gradient color stops with direct HEX input and adjustable positions.
+- Desktop, tablet, and phone shortcuts.
+- Automatic responsive sizing or manual width and height.
+- Dimension swap and reset controls.
+- Editable address bar with back, forward, and reload actions.
+- Recent URLs and persistent bookmarks.
+- Optional scrollbar, cursor, animation, and page-background controls.
+- Custom CSS and safe visibility controls for discovered page elements.
+- Screenshot upload when a live page cannot be embedded.
+
+## Device mockups
+
+Choose a custom computer, tablet, or phone frame, or start from a ready-made aspect ratio. Ready frames preserve their technical proportions while still allowing supported appearance changes.
+
+Device controls include:
+
+- Frame color with color picker and direct HEX input.
+- Material, roughness, reflectivity, and surface reflection.
+- Frame thickness, screen size, and corner geometry on custom devices.
+- Matte-screen and glass-reflection treatment.
+- Adjustable part-gradient direction, size, and softness.
+- Device-only wireframe mode with independent contour color and thickness.
+- Removable and restorable monitor stems, bases, details, laptop lips, and phone side controls where supported.
+- Saved custom devices with thumbnails and persistent favorites for ready frames.
+
+The website remains visible when wireframe mode is enabled, and the outline grows outside the screen glass instead of covering the content.
+
+## Composition and camera
+
+Arrange the device directly in the preview instead of correcting placement after export.
+
+- Pan with the middle mouse button.
+- Zoom with the mouse wheel.
+- Adjust camera X/Y, rotation, vertical tilt, and horizontal tilt.
+- Reset individual controls or double-click a slider to restore its default.
+- Recenter the device with a dedicated center action.
+- Use optional 1:1, 4:5, or 16:9 composition frames.
+- Switch the composition between landscape and portrait.
+- Drag the Device Settings panel to keep controls away from the artwork.
+- Collapse the Frames panel to create more preview space while keeping the device centered.
+
+## Background design
+
+Build the surrounding composition without leaving the application:
+
+- Black, white, transparent, or custom-color backgrounds.
+- Uploaded background images.
+- Linear and radial gradients.
+- Any number of gradient colors with HEX and position controls.
+- Adjustable gradient angle and transition behavior.
 - Dark and light application themes.
-- Turkish and English interface languages.
-- Local Space Mono font files—no font CDN is required.
-- Sharp monochrome YCSWU UI: all application panels, buttons, fields, switches and menus use zero-radius corners.
-- High-opacity, strongly blurred Device Settings glass panel with high-contrast labels.
 
 ## Export
 
-- PNG, transparent PNG, JPG, WebP and SVG.
-- Adjustable long edge, DPI and JPEG/WebP quality.
-- Exports the entire active preview composition or the selected framing crop.
-- High-density single-viewport Chromium capture; no 2×2 page tiling.
-- Transparent output with genuinely transparent outer pixels.
-- Native vector device geometry and CSS shapes in SVG output.
-- Website text converted to font-independent vector paths, so the SVG does not substitute fonts on another computer.
-- No `foreignObject` wrapper in SVG output.
-- Existing vector page assets remain inline vectors when possible; photographs remain bitmap assets.
-- Export engines are loaded only when needed. Raster encoding uses asynchronous `toBlob` and avoids redundant full-size canvas copies.
+Export the active preview or the selected composition frame as:
 
-## Web and Windows differences
+- PNG
+- Transparent PNG
+- JPG
+- WebP
+- SVG
 
-The Windows edition uses Electron's embedded Chromium webview and can navigate and capture normal external websites while preserving site sessions. The static web edition obeys browser iframe and cross-origin policies. A remote site that forbids embedding may not appear in the web build; unrestricted external-site capture is therefore a Windows feature.
+Raster output supports adjustable long-edge size, DPI, and JPEG/WebP quality. Transparent PNG preserves transparent pixels outside the device.
 
-All frame editing, camera, composition, background and local persistence features are shared by both editions.
+SVG output keeps the device geometry and compatible website graphics as vectors. Website text is converted to font-independent vector paths so its appearance does not change when the file is opened on another computer. Photographic content remains embedded as bitmap imagery where necessary.
 
-## Privacy and storage
+Saved devices can also be exported as transparent PNG frames with an empty screen, ready for reuse in another design workflow.
 
-- Bookmarks, recent URLs, favorites, saved devices and editor settings stay in the local browser/application profile.
-- The static web build needs no database or server-side runtime.
-- The obsolete proprietary project-file open/save system is not included.
+## Local workspace and privacy
 
-## Development
+Bookmarks, recent URLs, favorites, saved devices, and editor preferences are stored in the local browser or application profile. The static web edition does not require a database, account, or server-side application runtime.
 
-Requirements: Node.js 20 or newer, npm and Windows for Windows packaging.
+## Editions
 
-```powershell
-npm.cmd install
-npm.cmd run dev
-```
+- **Windows Setup:** installed desktop application with the complete Chromium capture workflow.
+- **Windows Portable:** the same desktop workflow without installation.
+- **Web:** static browser edition for hosting on a normal web server or cPanel account.
 
-Build and verify the web application:
+Responsive Mockup Studio is part of **YCSWU Tools**.
 
-```powershell
-npm.cmd run qa
-```
-
-Build web, source, Setup and Portable releases:
-
-```powershell
-npm.cmd run release:all
-```
-
-Important scripts:
-
-- `npm.cmd run typecheck` — TypeScript validation.
-- `npm.cmd run test:unit` — source and regression tests.
-- `npm.cmd run build:web` — production static web build.
-- `npm.cmd run dist:win` — Windows Setup and Portable builds.
-- `npm.cmd run release:all` — complete release and SHA-256 manifests.
-
-## cPanel deployment
-
-The deployable archive is `Responsive-Mockup-Studio-Web-cPanel-1.2.7.zip`. It is built for:
-
-```text
-https://ycswu.co/mockup-studio/
-```
-
-Create `public_html/mockup-studio`, upload the ZIP into that directory, extract it there and confirm that `index.html` is directly inside `mockup-studio`—not inside another nested folder. The package contains relative application asset paths, `DirectoryIndex`, SPA fallback rules, cache/compression rules, `robots.txt`, `sitemap.xml`, SoftwareApplication JSON-LD, Open Graph metadata, a web manifest and `llms.txt`.
-
-See [DEPLOY-CPANEL-TR.md](DEPLOY-CPANEL-TR.md) for the exact Turkish upload checklist.
-
-## Quality assurance
-
-The v1.2.7 release was verified through:
-
-- 32 unit/regression tests.
-- Source, Portable and installed Setup Electron smoke tests.
-- 58 runtime assertions with zero application errors.
-- Three real-site captures and multiple responsive aspect ratios.
-- 4000 px / 300 DPI raster export.
-- Transparent, framed, material, wireframe and saved-empty-device exports.
-- Native SVG and YCSWU website SVG validation with zero text nodes, zero `foreignObject` elements and font-independent text outlines.
-- Real silent install, installed-app execution, uninstall and install-directory removal.
-- Static web ZIP extraction and HTTP asset smoke testing.
-
-## Project structure
-
-```text
-electron/     Electron main process, preload and SVG text outliner
-public/       Web metadata, SEO files, icon and social preview
-scripts/      Asset, vector-bundle and release packaging scripts
-src/          React editor, geometry, Canvas and SVG composition engines
-tests/        Unit, regression and build validation tests
-metadata/     YCSWU Tools manifest
-```
-
-## License
-
-MIT. See [LICENSE](LICENSE).
-
-Created by Ali Guzel / YCSWU.
+MIT licensed. Created by Ali Guzel / YCSWU.
