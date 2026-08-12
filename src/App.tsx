@@ -177,7 +177,6 @@ const tr = {
   hideScrollbar: 'Scrollbar gizle', hideCursor: 'İmleci gizle', hideBackground: 'Sayfa zeminini gizle',
   customCss: 'Özel CSS',
   pageElements: 'Sayfa elemanları', refreshElements: 'Elemanları yenile', noPageElements: 'Gizlenebilir eleman bulunamadı', technicalLocked: 'Üretici teknik ölçüleri kilitli',
-  webNotice: 'Uzak site capture’ı tarayıcı güvenliği nedeniyle Windows sürümünde çalışır.',
   uploadCapture: 'Ekran görüntüsü yükle', noCapture: 'Önce bir site capture alın veya ekran görüntüsü yükleyin.',
   captureFailed: 'Capture başarısız', exportDone: 'Çıktı hazır',
   bookmarks: 'Bookmarklar', bookmarkCurrent: 'Bu siteyi bookmarkla', removeBookmark: 'Bookmarkı sil', noBookmarks: 'Henüz bookmark yok',
@@ -210,7 +209,6 @@ const en: typeof tr = {
   hideScrollbar: 'Hide scrollbar', hideCursor: 'Hide cursor', hideBackground: 'Hide page background',
   customCss: 'Custom CSS',
   pageElements: 'Page elements', refreshElements: 'Refresh elements', noPageElements: 'No hideable elements found', technicalLocked: 'Manufacturer geometry locked',
-  webNotice: 'Remote-site capture works in Windows because browsers enforce cross-origin security.',
   uploadCapture: 'Upload screenshot', noCapture: 'Capture a site or upload a screenshot first.',
   captureFailed: 'Capture failed', exportDone: 'Export ready',
   bookmarks: 'Bookmarks', bookmarkCurrent: 'Bookmark this site', removeBookmark: 'Remove bookmark', noBookmarks: 'No bookmarks yet',
@@ -1903,7 +1901,6 @@ function App() {
                 </div>
               )}
             </div>
-            {!runtime.desktop && <div className="web-limit-banner"><CircleAlert size={15} /> {copy.webNotice}</div>}
           </section>
         </main>
 

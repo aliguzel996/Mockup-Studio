@@ -350,6 +350,13 @@ test('output cleanup and live page controls match the working UI', () => {
   assert.match(app, /directlyHidden/);
 });
 
+test('web preview does not render a permanent remote-capture warning banner', () => {
+  const app = read('src/App.tsx');
+  const styles = read('src/styles.css');
+  assert.doesNotMatch(app, /webNotice|web-limit-banner|Remote-site capture works in Windows|Uzak site capture/);
+  assert.doesNotMatch(styles, /web-limit-banner/);
+});
+
 test('header contains only left language and right theme controls while browser chrome has no decorative dots', () => {
   const app = read('src/App.tsx');
   const styles = read('src/styles.css');

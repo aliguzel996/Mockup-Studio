@@ -1,6 +1,6 @@
 {
   "name": "responsive-mockup-studio",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "description": "Render real responsive websites inside production-ready device mockups.",
   "type": "module",
   "main": "electron/main.cjs",

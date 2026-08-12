@@ -43,7 +43,7 @@ assert.ok(jsonLdSource, 'SoftwareApplication JSON-LD is missing');
 const jsonLd = JSON.parse(jsonLdSource);
 assert.deepEqual(jsonLd['@type'], ['SoftwareApplication', 'WebApplication']);
 assert.equal(jsonLd.url, 'https://ycswu.co/mockup-studio/');
-assert.equal(jsonLd.softwareVersion, '1.2.6');
+assert.equal(jsonLd.softwareVersion, '1.2.7');
 assert.ok(jsonLd.featureList.length >= 8);
 
 assert.match(read('robots.txt'), /Sitemap: https:\/\/ycswu\.co\/mockup-studio\/sitemap\.xml/);
@@ -52,6 +52,6 @@ assert.match(read('llms.txt'), /## Core capabilities/);
 assert.match(read('.htaccess'), /RewriteBase \/mockup-studio\//);
 assert.match(read('.htaccess'), /RewriteRule \^ index\.html \[L\]/);
 assert.equal(JSON.parse(read('site.webmanifest')).start_url, './');
-assert.equal(JSON.parse(fs.readFileSync(path.join(root, 'app.manifest.json'), 'utf8')).version, '1.2.6');
+assert.equal(JSON.parse(fs.readFileSync(path.join(root, 'app.manifest.json'), 'utf8')).version, '1.2.7');
 
 process.stdout.write(`cPanel/SEO build validated: ${required.length} required root entries, relative assets, JSON-LD, Open Graph, sitemap, robots and llms.txt\n`);
