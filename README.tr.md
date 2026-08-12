@@ -129,7 +129,7 @@ npm.cmd run release:all
 
 ## cPanel kurulumu
 
-Hazır arşiv: `Responsive-Mockup-Studio-Web-cPanel-1.2.4.zip`
+Hazır arşiv: `Responsive-Mockup-Studio-Web-cPanel-1.2.5.zip`
 
 Hedef URL:
 
@@ -143,7 +143,7 @@ Adım adım kontrol için [DEPLOY-CPANEL-TR.md](DEPLOY-CPANEL-TR.md) dosyasına 
 
 ## Kalite doğrulaması
 
-v1.2.4 release'i şu kontrollerden geçti:
+v1.2.5 release'i şu kontrollerden geçti:
 
 - 32 unit/regresyon testi.
 - Kaynak, Portable ve kurulu Setup Electron smoke testleri.

@@ -152,5 +152,19 @@ for (const file of deliverables) {
 }
 const manifestPath = path.join(outputDir, `Responsive-Mockup-Studio-${version}-SHA256.json`);
 await fs.writeFile(manifestPath, JSON.stringify({ product: packageJson.build?.productName || packageJson.name, version, generatedAt: new Date().toISOString(), files: manifest }, null, 2));
+
+// Keep the handoff directory and output root on the latest release only.
+const currentDir = path.join(outputDir, 'CURRENT');
+if (!currentDir.startsWith(outputDir + path.sep)) throw new Error(`Unsafe current release path: ${currentDir}`);
+const currentFiles = [...deliverables, manifestPath];
+const keepNames = new Set(currentFiles.map((file) => path.basename(file)));
+for (const entry of await fs.readdir(outputDir, { withFileTypes: true })) {
+  if (!entry.isFile() || !entry.name.startsWith('Responsive-Mockup-Studio-') || keepNames.has(entry.name)) continue;
+  await fs.rm(path.join(outputDir, entry.name), { force: true });
+}
+await fs.rm(currentDir, { recursive: true, force: true });
+await fs.mkdir(currentDir, { recursive: true });
+for (const file of currentFiles) await fs.copyFile(file, path.join(currentDir, path.basename(file)));
+
 await fs.rm(staging, { recursive: true, force: true });
 process.stdout.write(`${JSON.stringify({ outputDir, manifest }, null, 2)}\n`);

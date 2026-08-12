@@ -464,6 +464,17 @@ test('YCSWU manifest is catalog ready', () => {
   assert.ok(manifest.outputFormats.includes('SVG'));
 });
 
+test('application logo is the flat double-outline frame on black', () => {
+  const icon = read('public/icon.svg');
+  const webManifest = JSON.parse(read('public/site.webmanifest'));
+  assert.equal((icon.match(/<rect\b/g) || []).length, 3);
+  assert.match(icon, /<rect width="512" height="512" fill="#000000"\/>/);
+  assert.equal((icon.match(/class="outline"/g) || []).length, 2);
+  assert.doesNotMatch(icon, /<path\b|<circle\b|<ellipse\b|<polygon\b/);
+  assert.doesNotMatch(icon, /quadratic|curve|stand|camera/i);
+  assert.ok(webManifest.icons.some((entry) => entry.src === './icon.svg' && entry.type === 'image/svg+xml'));
+});
+
 test('web release is subfolder-safe and ships complete search and AI discovery metadata', () => {
   const index = read('index.html');
   const packageScript = read('scripts/package-release.mjs');
