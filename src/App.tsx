@@ -748,7 +748,7 @@ function App() {
     centerX: number;
     centerY: number;
   } | null>(null);
-  const deviceDockDragRef = useRef<{ pointerId: number; x: number; y: number; originX: number; originY: number; maxX: number; maxY: number } | null>(null);
+  const deviceDockDragRef = useRef<{ pointerId: number; x: number; y: number; originX: number; originY: number; minX: number; minY: number; maxX: number; maxY: number } | null>(null);
   const deviceDockDidDragRef = useRef(false);
   const projectRef = useRef(project);
   projectRef.current = project;
@@ -764,6 +764,22 @@ function App() {
     () => responsiveViewportSize(frame, project),
     [frame, project.customGeometries, project.viewportAuto, project.viewportWidth, project.viewportHeight, project.screenScaleX, project.screenScaleY],
   );
+  const androidPreviewCss = useMemo(
+    () => guestPresentationCss(project),
+    [project.freezeAnimations, project.hideScrollbar, project.hideCursor, project.hidePageBackground, project.hiddenSelectors, project.customCss],
+  );
+  const androidPreviewStateRef = useRef({
+    url: activeUrl,
+    css: androidPreviewCss,
+    viewportWidth: effectiveViewport.width,
+    viewportHeight: effectiveViewport.height,
+  });
+  androidPreviewStateRef.current = {
+    url: activeUrl,
+    css: androidPreviewCss,
+    viewportWidth: effectiveViewport.width,
+    viewportHeight: effectiveViewport.height,
+  };
   const customFrames = useMemo(() => FRAME_PRESETS.filter((item) => Boolean(item.customVariant)), []);
   const readyFrameGroups = useMemo(() => groupFrames(language)
     .map(([group, items]) => [group, items.filter((item) => !item.customVariant)] as const)
@@ -780,6 +796,7 @@ function App() {
   const applyPagePresentation = useCallback(async () => {
     const css = guestPresentationCss(project);
     if (!runtime.desktop) {
+      if (window.RMSAndroid) return;
       try {
         const document = (webviewNode as HTMLIFrameElement | null)?.contentDocument;
         if (!document) return;
@@ -1055,6 +1072,67 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (!window.RMSAndroid) return;
+    let animationFrame = 0;
+    let disposed = false;
+    let lastPayload = '';
+    const onPreviewEvent = (event: { type: 'start' | 'finish' | 'error'; url?: string; error?: string }) => {
+      if (event.type === 'start') {
+        setLoading(true);
+        return;
+      }
+      setLoading(false);
+      if (event.type === 'error') {
+        setToast({ tone: 'bad', text: event.error || 'Website could not be loaded.' });
+        return;
+      }
+      if (!event.url || event.url === 'about:blank') return;
+      pendingNavigationRef.current = null;
+      activeUrlRef.current = event.url;
+      setActiveUrl(event.url);
+      setProject((current) => current.url === event.url ? current : { ...current, url: event.url! });
+      if (!addressEditingRef.current) setAddress(event.url);
+      setRecent((items) => [event.url!, ...items.filter((item) => item !== event.url)].slice(0, 12));
+    };
+    window.__rmsAndroidPreviewEvent = onPreviewEvent;
+
+    const syncPreview = () => {
+      if (disposed || !window.RMSAndroid) return;
+      const surface = document.querySelector('.live-screen') as HTMLElement | null;
+      const rect = surface?.getBoundingClientRect();
+      const state = androidPreviewStateRef.current;
+      const visible = Boolean(surface && rect && rect.width >= 2 && rect.height >= 2
+        && rect.right > 0 && rect.bottom > 0 && rect.left < window.innerWidth && rect.top < window.innerHeight);
+      const payload = JSON.stringify({
+        type: 'sync-native-preview',
+        visible,
+        url: state.url,
+        css: state.css,
+        rect: rect ? {
+          x: Math.round(rect.left * 100) / 100,
+          y: Math.round(rect.top * 100) / 100,
+          width: Math.round(rect.width * 100) / 100,
+          height: Math.round(rect.height * 100) / 100,
+        } : { x: 0, y: 0, width: 0, height: 0 },
+        cssViewport: { width: window.innerWidth, height: window.innerHeight },
+        virtualViewport: { width: state.viewportWidth, height: state.viewportHeight },
+      });
+      if (payload !== lastPayload) {
+        lastPayload = payload;
+        window.RMSAndroid.postMessage(payload);
+      }
+      animationFrame = window.requestAnimationFrame(syncPreview);
+    };
+    animationFrame = window.requestAnimationFrame(syncPreview);
+    return () => {
+      disposed = true;
+      window.cancelAnimationFrame(animationFrame);
+      if (window.__rmsAndroidPreviewEvent === onPreviewEvent) delete window.__rmsAndroidPreviewEvent;
+      window.RMSAndroid?.postMessage(JSON.stringify({ type: 'sync-native-preview', visible: false }));
+    };
+  }, []);
+
+  useEffect(() => {
     if (!webviewNode) return;
     const start = () => setLoading(true);
     const stop = () => {
@@ -1090,6 +1168,7 @@ function App() {
       setToast({ tone: 'bad', text: `${event.errorCode ?? ''} ${event.errorDescription ?? 'Load failed'}`.trim() });
     };
     if (!runtime.desktop) {
+      if (window.RMSAndroid) return;
       webviewNode.addEventListener('load', stop);
       return () => webviewNode.removeEventListener('load', stop);
     }
@@ -1150,6 +1229,14 @@ function App() {
   };
 
   const navigateWebHistory = (direction: -1 | 1) => {
+    if (window.RMSAndroid) {
+      setLoading(true);
+      window.RMSAndroid.postMessage(JSON.stringify({
+        type: 'native-preview-command',
+        command: direction < 0 ? 'back' : 'forward',
+      }));
+      return;
+    }
     const history = webHistoryRef.current;
     const nextIndex = clamp(history.index + direction, 0, history.entries.length - 1);
     if (nextIndex === history.index) return;
@@ -1165,6 +1252,11 @@ function App() {
   const reloadPreview = () => {
     if (runtime.desktop) {
       webviewNode?.reload?.();
+      return;
+    }
+    if (window.RMSAndroid) {
+      setLoading(true);
+      window.RMSAndroid.postMessage(JSON.stringify({ type: 'native-preview-command', command: 'reload' }));
       return;
     }
     if (webviewNode) {
@@ -1383,6 +1475,7 @@ function App() {
     if (!canvas || !dock) return;
     const canvasRect = canvas.getBoundingClientRect();
     const dockRect = dock.getBoundingClientRect();
+    const safeInset = 8;
     event.preventDefault();
     event.stopPropagation();
     try { event.currentTarget.setPointerCapture(event.pointerId); } catch { /* Synthetic QA pointers cannot be captured. */ }
@@ -1393,8 +1486,10 @@ function App() {
       y: event.clientY,
       originX: dockRect.left - canvasRect.left,
       originY: dockRect.top - canvasRect.top,
-      maxX: Math.max(0, canvasRect.width - dockRect.width),
-      maxY: Math.max(0, canvasRect.height - dockRect.height),
+      minX: safeInset,
+      minY: safeInset,
+      maxX: Math.max(safeInset, canvasRect.width - dockRect.width - safeInset),
+      maxY: Math.max(safeInset, canvasRect.height - dockRect.height - safeInset),
     };
     setIsDeviceDockDragging(true);
   };
@@ -1406,8 +1501,8 @@ function App() {
     event.stopPropagation();
     if (Math.hypot(event.clientX - drag.x, event.clientY - drag.y) > 3) deviceDockDidDragRef.current = true;
     setDeviceDockPosition({
-      x: clamp(drag.originX + event.clientX - drag.x, 0, drag.maxX),
-      y: clamp(drag.originY + event.clientY - drag.y, 0, drag.maxY),
+      x: clamp(drag.originX + event.clientX - drag.x, drag.minX, drag.maxX),
+      y: clamp(drag.originY + event.clientY - drag.y, drag.minY, drag.maxY),
     });
   };
 
@@ -1426,13 +1521,14 @@ function App() {
       const canvasRect = previewCanvasRef.current?.getBoundingClientRect();
       const dockRect = deviceSettingsDockRef.current?.getBoundingClientRect();
       if (!canvasRect || !dockRect) return;
+      const safeInset = 8;
       setDeviceDockPosition((current) => current ? {
-        x: clamp(current.x, 0, Math.max(0, canvasRect.width - dockRect.width)),
-        y: clamp(current.y, 0, Math.max(0, canvasRect.height - dockRect.height)),
+        x: clamp(current.x, safeInset, Math.max(safeInset, canvasRect.width - dockRect.width - safeInset)),
+        y: clamp(current.y, safeInset, Math.max(safeInset, canvasRect.height - dockRect.height - safeInset)),
       } : current);
     });
     return () => window.cancelAnimationFrame(animationFrame);
-  }, [deviceSettingsOpen]);
+  }, [deviceSettingsOpen, previewSize.width, previewSize.height]);
 
   const screenBounds = useMemo(() => {
     const xs = [geometry.topLeft.x, geometry.topRight.x, geometry.bottomRight.x, geometry.bottomLeft.x];
@@ -2251,8 +2347,8 @@ function App() {
                         <iframe
                           ref={(node) => setWebviewNode(node)}
                           title="Live website preview"
-                          src={activeUrl}
-                          style={{ ...browserStyle, cursor: project.hideCursor ? 'none' : undefined, pointerEvents: project.hideCursor ? 'none' : undefined }}
+                          src={window.RMSAndroid ? 'about:blank' : activeUrl}
+                          style={{ ...browserStyle, cursor: project.hideCursor ? 'none' : undefined, pointerEvents: window.RMSAndroid || project.hideCursor ? 'none' : undefined }}
                           scrolling={project.hideScrollbar ? 'no' : 'auto'}
                           sandbox="allow-forms allow-modals allow-popups allow-same-origin allow-scripts"
                         />
@@ -2292,7 +2388,7 @@ function App() {
                 }}
               >
                 <span><SlidersHorizontal size={14} /> {copy.deviceSettings}</span>
-                <small className="device-settings-drag-handle" data-dock-drag-handle="true" title={language === 'tr' ? 'Basılı tut ve taşı' : 'Hold and drag'}><Move size={13} /><span>{language === 'tr' ? 'TUT · TAŞI' : 'HOLD · DRAG'}</span></small>
+                <span className="device-settings-drag-handle" data-dock-drag-handle="true" title={language === 'tr' ? 'Paneli taşı' : 'Move panel'} aria-hidden="true" />
                 <ChevronDown className={deviceSettingsOpen ? 'open' : ''} size={14} />
               </button>
               {deviceSettingsOpen && (

@@ -1596,7 +1596,7 @@ async function runSmokeSuite(outputPath) {
   const uiDeviceDockDrag = await uiWindow.webContents.executeJavaScript(`new Promise((resolve) => {
     const dock = document.querySelector('.device-settings-dock');
     const glass = document.querySelector('.device-settings-glass');
-    const target = glass?.querySelector('.device-settings-heading > span');
+    const target = document.querySelector('.device-settings-drag-handle');
     if (!dock || !glass || !target) return resolve(false);
     const before = dock.getBoundingClientRect();
     const handle = target.getBoundingClientRect();

@@ -140,10 +140,13 @@ test('device appearance controls live in a collapsible glass viewport drawer', (
   assert.match(app, /event\.stopPropagation\(\); beginDeviceSettingsDrag\(event\)/);
   assert.match(app, /event\.stopPropagation\(\); moveDeviceSettingsDrag\(event\)/);
   assert.match(app, /if \(!dragHandle\) return/);
-  assert.match(app, /TUT · TAŞI/);
+  assert.doesNotMatch(app, /TUT · TAŞI|HOLD · DRAG/);
+  assert.match(app, /minX: safeInset/);
+  assert.match(app, /minY: safeInset/);
+  assert.match(app, /previewSize\.width, previewSize\.height/);
   assert.match(app, /deviceSettingsDockStyle/);
-  assert.match(styles, /\.device-settings-glass \{[^}]*cursor: grab/);
-  assert.match(styles, /\.device-settings-dock\.dragging \.device-settings-glass/);
+  assert.match(styles, /\.device-settings-drag-handle::before \{[^}]*radial-gradient/);
+  assert.match(styles, /\.device-settings-glass \{[^}]*cursor: default/);
   assert.match(app, /data-dock-drag-handle="true"/);
   assert.match(styles, /\.device-settings-dock:not\(\.open\)/);
 });
@@ -401,13 +404,32 @@ test('web editor uses the desktop control surface without screenshot-upload fall
   assert.match(app, /collectPageElements\(document, project\.hiddenSelectors\)/);
   assert.match(app, /style\.textContent = guestPresentationCss\(captureProject\)/);
   assert.match(app, /scrolling=\{project\.hideScrollbar \? 'no' : 'auto'\}/);
-  assert.match(app, /pointerEvents: project\.hideCursor \? 'none' : undefined/);
+  assert.match(app, /pointerEvents: window\.RMSAndroid \|\| project\.hideCursor \? 'none' : undefined/);
   assert.match(app, /serializePageSvg\(document, captureViewport\.width, captureViewport\.height\)/);
   assert.match(app, /navigateWebHistory\(-1\)/);
   assert.match(app, /navigateWebHistory\(1\)/);
   assert.doesNotMatch(app, /uploadCapture|screenshotInputRef|Upload screenshot|Ekran görüntüsü yükle/);
   assert.doesNotMatch(readme, /uploaded screenshot|Screenshot upload/i);
   assert.doesNotMatch(readmeTr, /ekran görüntüsü yükleme/i);
+});
+
+test('Android renders remote websites in a native preview WebView instead of the restricted iframe', () => {
+  const app = read('src/App.tsx');
+  const types = read('src/types.ts');
+  const activity = read('android/app/src/main/java/co/ycswu/responsivemockupstudio/MainActivity.java');
+  assert.match(app, /type: 'sync-native-preview'/);
+  assert.match(app, /type: 'native-preview-command'/);
+  assert.match(app, /window\.__rmsAndroidPreviewEvent = onPreviewEvent/);
+  assert.match(app, /src=\{window\.RMSAndroid \? 'about:blank' : activeUrl\}/);
+  assert.match(types, /__rmsAndroidPreviewEvent\?/);
+  assert.match(activity, /private FrameLayout previewContainer;/);
+  assert.match(activity, /private WebView previewWebView;/);
+  assert.match(activity, /setAcceptThirdPartyCookies\(previewWebView, true\)/);
+  assert.match(activity, /private void syncNativePreview/);
+  assert.match(activity, /private void applyPreviewCss/);
+  assert.match(activity, /previewWebView\.loadUrl\(url\)/);
+  assert.match(activity, /previewContainer\.bringToFront\(\)/);
+  assert.match(activity, /Website görüntüsü yenileniyor/);
 });
 
 test('header contains only left language and right theme controls while browser chrome has no decorative dots', () => {
@@ -529,6 +551,7 @@ test('application logo uses the supplied white vector artwork on black across ev
   const webManifest = JSON.parse(read('public/site.webmanifest'));
   const index = read('index.html');
   const assetScript = read('scripts/generate-assets.mjs');
+  const splashStyle = read('android/app/src/main/res/values-v31/styles.xml');
   assert.match(icon, /viewBox="0 0 512 512"/);
   assert.match(icon, /<rect width="512" height="512"\/>/);
   assert.match(icon, /\.st0\s*\{\s*fill:\s*#f2f2ef;/);
@@ -536,6 +559,9 @@ test('application logo uses the supplied white vector artwork on black across ev
   assert.ok(webManifest.icons.some((entry) => entry.src === './icon.svg' && entry.type === 'image/svg+xml'));
   assert.ok(webManifest.icons.some((entry) => entry.src === './icon-192.png' && entry.sizes === '192x192'));
   assert.ok(webManifest.icons.some((entry) => entry.src === './icon-512.png' && entry.sizes === '512x512'));
+  assert.match(assetScript, /resize\(320, 320/);
+  assert.match(assetScript, /splash_icon\.png/);
+  assert.match(splashStyle, /windowSplashScreenAnimatedIcon">@drawable\/splash_icon/);
   for (const file of ['favicon.ico', 'favicon-16.png', 'favicon-32.png', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png']) {
     assert.ok(fs.existsSync(path.join(root, 'public', file)), `Missing generated web icon: ${file}`);
     assert.match(assetScript, new RegExp(file.replace('.', '\\.')));

@@ -248,5 +248,10 @@ declare global {
       postMessage(message: string): void;
     };
     __rmsResolveAndroidCapture?: (requestId: string, dataUrl?: string, error?: string) => void;
+    __rmsAndroidPreviewEvent?: (event: {
+      type: 'start' | 'finish' | 'error';
+      url?: string;
+      error?: string;
+    }) => void;
   }
 }
