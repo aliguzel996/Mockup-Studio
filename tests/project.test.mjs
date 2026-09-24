@@ -167,7 +167,8 @@ test('device drawer edits screen geometry, materials, wireframe, and removable p
     assert.match(renderEngine, new RegExp(control));
   }
   assert.match(app, /removeDeviceComponent/);
-  assert.match(app, /window\.confirm/);
+  assert.doesNotMatch(app, /window\.confirm/);
+  assert.match(app, /showToast\(language === 'tr' \? `\$\{label\} kaldırıldı\.`/);
   assert.match(app, /className="hidden-component-restores"/);
   assert.match(app, /className="restore-component-button"/);
   assert.match(styles, /\.preview-actions \{ margin-left: auto; \}/);
@@ -415,6 +416,7 @@ test('web editor uses the desktop control surface without screenshot-upload fall
 
 test('Android renders remote websites in a native preview WebView instead of the restricted iframe', () => {
   const app = read('src/App.tsx');
+  const styles = read('src/styles.css');
   const types = read('src/types.ts');
   const activity = read('android/app/src/main/java/co/ycswu/responsivemockupstudio/MainActivity.java');
   assert.match(app, /type: 'sync-native-preview'/);
@@ -433,6 +435,10 @@ test('Android renders remote websites in a native preview WebView instead of the
   assert.match(activity, /previewWebView\.getResources\(\)\.getDisplayMetrics\(\)\.density/);
   assert.match(activity, /setRendererPriorityPolicy\(WebView\.RENDERER_PRIORITY_IMPORTANT, false\)/);
   assert.match(activity, /Android WebView " \+ error\.getErrorCode\(\)/);
+  assert.match(activity, /replace\("; wv", ""\)/);
+  assert.match(activity, /previewContainer\.setVisibility\(View\.GONE\);[\s\S]*Toast\.makeText\(MainActivity\.this, message/);
+  assert.match(app, /className="native-preview-error"/);
+  assert.match(styles, /\.native-preview-error/);
   assert.match(activity, /onPageCommitVisible/);
   assert.doesNotMatch(activity, /RMS-Preview\//);
   assert.match(activity, /private void syncNativePreview/);

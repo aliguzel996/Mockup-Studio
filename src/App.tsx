@@ -707,6 +707,7 @@ function App() {
   const [activeUrl, setActiveUrl] = useState(project.url);
   const [webviewNode, setWebviewNode] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [androidPreviewError, setAndroidPreviewError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ tone: 'good' | 'bad' | 'info'; text: string } | null>(null);
   const [isPanning, setIsPanning] = useState(false);
   const [activePanel, setActivePanel] = useState<'camera' | 'background' | 'output' | 'advanced'>('camera');
@@ -1091,14 +1092,18 @@ function App() {
     let lastPayload = '';
     const onPreviewEvent = (event: { type: 'start' | 'finish' | 'error'; url?: string; error?: string }) => {
       if (event.type === 'start') {
+        setAndroidPreviewError(null);
         setLoading(true);
         return;
       }
       setLoading(false);
       if (event.type === 'error') {
-        setToast({ tone: 'bad', text: event.error || 'Website could not be loaded.' });
+        const message = event.error || 'Website could not be loaded.';
+        setAndroidPreviewError(message);
+        setToast({ tone: 'bad', text: message });
         return;
       }
+      setAndroidPreviewError(null);
       if (!event.url || event.url === 'about:blank') return;
       pendingNavigationRef.current = null;
       activeUrlRef.current = event.url;
@@ -1380,9 +1385,8 @@ function App() {
   const resetFrameAppearance = () => updateProject(frameAppearance(frame));
 
   const removeDeviceComponent = (component: 'stem' | 'base' | 'deck' | 'detail' | 'phoneLeftControls' | 'phoneRightButton', label: string) => {
-    const question = language === 'tr' ? `${label} kaldırılsın mı?` : `Remove ${label}?`;
-    if (!window.confirm(question)) return;
     updateProject({ [`${component}Visible`]: false } as Partial<ProjectState>);
+    showToast(language === 'tr' ? `${label} kaldırıldı.` : `${label} removed.`, 'good');
   };
 
   const beginViewportPan = (event: React.PointerEvent<HTMLElement>) => {
@@ -2365,6 +2369,13 @@ function App() {
                           scrolling={project.hideScrollbar ? 'no' : 'auto'}
                           sandbox="allow-forms allow-modals allow-popups allow-same-origin allow-scripts"
                         />
+                      )}
+                      {window.RMSAndroid && androidPreviewError && (
+                        <div className="native-preview-error" role="alert">
+                          <strong>{language === 'tr' ? 'Website açılamadı' : 'Website could not be opened'}</strong>
+                          <span>{androidPreviewError}</span>
+                          <small>{activeUrl}</small>
+                        </div>
                       )}
                       {project.matte && <div className="matte-layer" />}
                       {project.glare > 0 && <div className="glare-layer" style={{ opacity: project.glare / 100 }} />}

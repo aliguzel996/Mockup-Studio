@@ -201,6 +201,25 @@ input:focus, select:focus, textarea:focus { border-color: var(--border-strong); 
 .finish-titanium .device-body { background: linear-gradient(135deg,#8a8983,#292925 34%,#5f5e58 70%,#1b1b19); }
 .live-screen { position: absolute; z-index: 2; overflow: hidden; background: #080808; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
 .live-screen-content { position: absolute; inset: 0; overflow: visible; transform: translateZ(0); transform-origin: center; }
+.native-preview-error {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  overflow: hidden;
+  background: #090909;
+  color: #f4f4ef;
+  text-align: center;
+  pointer-events: none;
+}
+.native-preview-error strong { font-size: 13px; }
+.native-preview-error span { color: #ff6b6b; font-size: 11px; }
+.native-preview-error small { width: 100%; overflow: hidden; color: #aaa; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .live-screen webview, .live-screen iframe { position: absolute; left: 50%; top: 50%; max-width: none; max-height: none; border: 0; transform-origin: center; background: #fff; }
 .live-screen webview { display: inline-flex; }
 .live-screen iframe { display: block; }

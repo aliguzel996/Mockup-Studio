@@ -219,6 +219,13 @@ public final class MainActivity extends Activity {
         previewSettings.setCacheMode(WebSettings.LOAD_NO_CACHE);
         previewSettings.setUseWideViewPort(true);
         previewSettings.setLoadWithOverviewMode(false);
+        previewSettings.setLoadsImagesAutomatically(true);
+        previewSettings.setBlockNetworkImage(false);
+        previewSettings.setBlockNetworkLoads(false);
+        String browserUserAgent = previewSettings.getUserAgentString()
+                .replace("; wv", "")
+                .replace(" Version/4.0", "");
+        previewSettings.setUserAgentString(browserUserAgent);
         previewWebView.clearCache(true);
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(previewWebView, true);
@@ -257,8 +264,10 @@ public final class MainActivity extends Activity {
                     }, 650L);
                     return;
                 }
-                emitPreviewEvent("error", failedUrl,
-                        "Android WebView " + error.getErrorCode() + ": " + error.getDescription());
+                String message = "Android WebView " + error.getErrorCode() + ": " + error.getDescription();
+                previewContainer.setVisibility(View.GONE);
+                Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
+                emitPreviewEvent("error", failedUrl, message);
             }
 
             @Override
