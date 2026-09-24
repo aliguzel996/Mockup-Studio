@@ -2,7 +2,9 @@ package co.ycswu.responsivemockupstudio;
 
 import android.app.Activity;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
 import android.net.Uri;
@@ -16,6 +18,7 @@ import android.view.PixelCopy;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.view.inputmethod.InputMethodManager;
 import android.webkit.ValueCallback;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
@@ -28,6 +31,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 import android.widget.FrameLayout;
+import android.util.DisplayMetrics;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -51,6 +55,7 @@ public final class MainActivity extends Activity {
     private WebView previewWebView;
     private String previewUrl = "";
     private String previewCss = "";
+    private int previewRetryCount;
     private ValueCallback<Uri[]> pendingFileCallback;
     private View fullscreenView;
     private WebChromeClient.CustomViewCallback fullscreenCallback;
@@ -188,8 +193,16 @@ public final class MainActivity extends Activity {
         previewContainer.setVisibility(View.GONE);
         previewContainer.setBackgroundColor(android.graphics.Color.BLACK);
 
-        previewWebView = new WebView(this);
+        // Render the requested responsive viewport at 1 CSS px = 1 physical px.
+        // Using the tablet's 2x-3x display density here turns a 1440x900 website
+        // into an unnecessarily huge GPU surface and can terminate the WebView
+        // renderer on canvas-heavy pages.
+        Configuration previewConfiguration = new Configuration(getResources().getConfiguration());
+        previewConfiguration.densityDpi = DisplayMetrics.DENSITY_DEFAULT;
+        Context previewContext = createConfigurationContext(previewConfiguration);
+        previewWebView = new WebView(previewContext);
         previewWebView.setBackgroundColor(android.graphics.Color.BLACK);
+        previewWebView.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false);
         WebSettings previewSettings = previewWebView.getSettings();
         previewSettings.setJavaScriptEnabled(true);
         previewSettings.setDomStorageEnabled(true);
@@ -225,13 +238,27 @@ public final class MainActivity extends Activity {
             @Override
             public void onPageCommitVisible(WebView view, String url) {
                 previewUrl = url == null ? previewUrl : url;
+                previewRetryCount = 0;
                 applyPreviewCss();
                 emitPreviewEvent("finish", previewUrl, null);
             }
 
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, android.webkit.WebResourceError error) {
-                if (request.isForMainFrame()) emitPreviewEvent("error", request.getUrl().toString(), String.valueOf(error.getDescription()));
+                if (!request.isForMainFrame()) return;
+                String failedUrl = request.getUrl().toString();
+                if (failedUrl.equals(previewUrl) && previewRetryCount < 1) {
+                    previewRetryCount += 1;
+                    view.postDelayed(() -> {
+                        if (previewWebView == view && failedUrl.equals(previewUrl)) {
+                            view.stopLoading();
+                            view.loadUrl(failedUrl);
+                        }
+                    }, 650L);
+                    return;
+                }
+                emitPreviewEvent("error", failedUrl,
+                        "Android WebView " + error.getErrorCode() + ": " + error.getDescription());
             }
 
             @Override
@@ -272,6 +299,10 @@ public final class MainActivity extends Activity {
         }
         if ("native-preview-command".equals(type)) {
             runOnUiThread(() -> handlePreviewCommand(request.optString("command", "")));
+            return;
+        }
+        if ("hide-keyboard".equals(type)) {
+            runOnUiThread(this::hideKeyboard);
             return;
         }
         if ("capture-rendered-region".equals(type)) {
@@ -351,7 +382,7 @@ public final class MainActivity extends Activity {
             containerParams.topMargin = top;
             previewContainer.setLayoutParams(containerParams);
 
-            double density = Math.max(1d, getResources().getDisplayMetrics().density);
+            double density = Math.max(1d, previewWebView.getResources().getDisplayMetrics().density);
             double virtualWidth = Math.max(1d, virtualJson.optDouble("width", surfaceWidth / density));
             double virtualHeight = Math.max(1d, virtualJson.optDouble("height", surfaceHeight / density));
             double contentWidth = virtualWidth * density;
@@ -378,6 +409,7 @@ public final class MainActivity extends Activity {
 
             if (!url.equals(previewUrl)) {
                 previewUrl = url;
+                previewRetryCount = 0;
                 previewWebView.loadUrl(url);
             } else if (cssChanged) {
                 applyPreviewCss();
@@ -385,6 +417,16 @@ public final class MainActivity extends Activity {
         } catch (Exception error) {
             previewContainer.setVisibility(View.GONE);
             emitPreviewEvent("error", previewUrl, error.getMessage());
+        }
+    }
+
+    private void hideKeyboard() {
+        View focused = getCurrentFocus();
+        if (focused != null) focused.clearFocus();
+        InputMethodManager keyboard = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (keyboard != null) {
+            View tokenView = focused != null ? focused : webView;
+            if (tokenView != null) keyboard.hideSoftInputFromWindow(tokenView.getWindowToken(), 0);
         }
     }
 

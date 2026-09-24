@@ -429,6 +429,10 @@ test('Android renders remote websites in a native preview WebView instead of the
   assert.match(activity, /@JavascriptInterface[\s\S]*void postMessage/);
   assert.doesNotMatch(activity, /WEB_MESSAGE_LISTENER/);
   assert.match(activity, /setCacheMode\(WebSettings\.LOAD_NO_CACHE\)/);
+  assert.match(activity, /densityDpi = DisplayMetrics\.DENSITY_DEFAULT/);
+  assert.match(activity, /previewWebView\.getResources\(\)\.getDisplayMetrics\(\)\.density/);
+  assert.match(activity, /setRendererPriorityPolicy\(WebView\.RENDERER_PRIORITY_IMPORTANT, false\)/);
+  assert.match(activity, /Android WebView " \+ error\.getErrorCode\(\)/);
   assert.match(activity, /onPageCommitVisible/);
   assert.doesNotMatch(activity, /RMS-Preview\//);
   assert.match(activity, /private void syncNativePreview/);
@@ -436,6 +440,16 @@ test('Android renders remote websites in a native preview WebView instead of the
   assert.match(activity, /previewWebView\.loadUrl\(url\)/);
   assert.match(activity, /previewContainer\.bringToFront\(\)/);
   assert.match(activity, /Website görüntüsü yenileniyor/);
+});
+
+test('empty-space taps dismiss the Android keyboard without swallowing field interaction', () => {
+  const app = read('src/App.tsx');
+  const activity = read('android/app/src/main/java/co/ycswu/responsivemockupstudio/MainActivity.java');
+  assert.match(app, /dismissKeyboardOnEmptySpace/);
+  assert.match(app, /closest\('input, textarea, select, \[contenteditable="true"\]'\)/);
+  assert.match(app, /type: 'hide-keyboard'/);
+  assert.match(activity, /"hide-keyboard"\.equals\(type\)/);
+  assert.match(activity, /hideSoftInputFromWindow/);
 });
 
 test('header contains only left language and right theme controls while browser chrome has no decorative dots', () => {

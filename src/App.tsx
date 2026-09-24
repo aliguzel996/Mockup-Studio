@@ -1052,6 +1052,19 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const dismissKeyboardOnEmptySpace = (event: PointerEvent) => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+      const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      if (!active?.matches('input, textarea, select, [contenteditable="true"]')) return;
+      active.blur();
+      window.RMSAndroid?.postMessage(JSON.stringify({ type: 'hide-keyboard' }));
+    };
+    document.addEventListener('pointerdown', dismissKeyboardOnEmptySpace, true);
+    return () => document.removeEventListener('pointerdown', dismissKeyboardOnEmptySpace, true);
+  }, []);
+
+  useEffect(() => {
     if (!stageRef.current) return;
     const observer = new ResizeObserver(([entry]) => setStageSize((current) => {
       const next = { width: entry.contentRect.width, height: entry.contentRect.height };
