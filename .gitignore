@@ -9,3 +9,12 @@ coverage/
 .tmp-*/
 .qa-install-*/
 qa-*/
+android/.gradle/
+android/build/
+android/local.properties
+android/app/build/
+android/app/src/main/assets/
+android/signing.properties
+android/private-signing/
+*.jks
+*.keystore

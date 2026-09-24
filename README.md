@@ -61,6 +61,7 @@ The website remains visible when wireframe mode is enabled, and the outline grow
 Arrange the device directly in the preview instead of correcting placement after export.
 
 - Pan with the middle mouse button.
+- Pan with one finger or a pen on touch devices; pinch with two fingers to zoom and reposition.
 - Zoom with the mouse wheel.
 - Adjust camera X/Y, rotation, vertical tilt, and horizontal tilt.
 - Reset individual controls or double-click a slider to restore its default.
@@ -103,9 +104,12 @@ Bookmarks, recent URLs, favorites, saved devices, and editor preferences are sto
 
 ## Editions
 
+- **Android tablet:** installable, locally packaged editor with touch pan, pinch zoom, portrait/landscape layouts, system file selection, and exports saved to Downloads.
 - **Windows Setup:** installed desktop application with the complete Chromium capture workflow.
 - **Windows Portable:** the same desktop workflow without installation.
 - **Web:** static browser edition for hosting on a normal web server or cPanel account.
+
+The Android and web editions follow platform browser security rules when displaying third-party websites. The Windows edition provides the unrestricted embedded Chromium capture workflow for sites that block browser iframe access.
 
 Responsive Mockup Studio is part of **YCSWU Tools**.
 

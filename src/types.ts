@@ -244,5 +244,8 @@ export interface RMSDesktopAPI {
 declare global {
   interface Window {
     rms?: RMSDesktopAPI;
+    RMSAndroid?: {
+      postMessage(message: string): void;
+    };
   }
 }

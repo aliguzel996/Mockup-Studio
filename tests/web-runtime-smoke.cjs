@@ -5,6 +5,8 @@ const path = require('node:path');
 const { app, BrowserWindow } = require('electron');
 
 const target = process.argv.find((value) => /^https?:\/\//.test(value)) || 'http://127.0.0.1:4173/';
+const testProfile = path.join(os.tmpdir(), `rms-web-runtime-profile-${process.pid}-${Date.now()}`);
+app.setPath('userData', testProfile);
 
 const waitFor = async (window, expression, timeout = 12000) => {
   const started = Date.now();
@@ -41,6 +43,27 @@ app.whenReady().then(async () => {
     assert.equal(shell.webview, false);
     assert.match(shell.outputToggles, /çıktı|output/i);
 
+    process.stderr.write('[phase] custom device orientation\n');
+    const orientation = await window.webContents.executeJavaScript(`(async () => {
+      const tick = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const rows = Array.from(document.querySelectorAll('.custom-frame-row'));
+      const tablet = rows[1];
+      tablet.querySelector('.frame-card').click();
+      await tick();
+      const portraitRect = document.querySelector('.live-screen').getBoundingClientRect();
+      const portrait = { width: portraitRect.width, height: portraitRect.height };
+      tablet.querySelector('.custom-frame-orientation').click();
+      await tick();
+      const landscapeRect = document.querySelector('.live-screen').getBoundingClientRect();
+      const landscape = { width: landscapeRect.width, height: landscapeRect.height };
+      const values = Array.from(document.querySelectorAll('.viewport-fields input')).map((input) => Number(input.value));
+      return { portrait, landscape, values, pressed: tablet.querySelector('.custom-frame-orientation').getAttribute('aria-pressed') };
+    })()`, true);
+    assert.ok(orientation.portrait.height > orientation.portrait.width, 'Custom tablet must start in portrait');
+    assert.ok(orientation.landscape.width > orientation.landscape.height, 'Custom tablet body and screen must rotate to landscape');
+    assert.deepEqual(orientation.values, [1210, 834]);
+    assert.equal(orientation.pressed, 'true');
+
     process.stderr.write('[phase] navigate fixture\n');
     await window.webContents.executeJavaScript(`(() => {
       const input = document.querySelector('input[aria-label="URL"]');
@@ -69,7 +92,10 @@ app.whenReady().then(async () => {
       setter.call(textarea, '#qa-status{outline:3px solid rgb(1,2,3)!important}');
       textarea.dispatchEvent(new Event('input', { bubbles: true }));
       return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => {
-        const eye = document.querySelector('.page-element-eye');
+        const targetRow = Array.from(document.querySelectorAll('.page-element-item'))
+          .find((row) => row.querySelector('small')?.textContent?.includes('#qa-status'));
+        const eye = targetRow?.querySelector('.page-element-eye');
+        if (!eye) throw new Error('The #qa-status visibility control was not found.');
         eye.click();
         requestAnimationFrame(() => requestAnimationFrame(() => {
           const iframe = document.querySelector('.live-screen iframe');
@@ -134,6 +160,7 @@ app.whenReady().then(async () => {
     process.stdout.write(`${JSON.stringify({ ok: true, shell, pageControls, advancedApplied, toggles, exportBytes: exported.length }, null, 2)}\n`);
   } finally {
     if (!window.isDestroyed()) window.destroy();
+    await fs.rm(testProfile, { recursive: true, force: true });
     app.quit();
   }
 }).catch((error) => {

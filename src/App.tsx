@@ -41,8 +41,9 @@ import {
 } from 'lucide-react';
 import { documentToSVG, inlineResources } from 'dom-to-svg';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { adjustScreenGeometry, resolveOutputDimensions, screenAspect } from './geometry';
+import { adjustScreenGeometry, resolveOutputDimensions, rotateScreenGeometry90, screenAspect } from './geometry';
 import type { PreviewLayout } from './geometry';
+import PublishingFooter from './PublishingFooter';
 import { DEFAULT_CUSTOM_GEOMETRIES, DEFAULT_CUSTOM_GEOMETRY, FRAME_PRESETS, getFrame, groupFrames } from './presets';
 import type {
   BackgroundMode,
@@ -653,6 +654,18 @@ function App() {
   const pendingNavigationRef = useRef<{ target: string; previous: string } | null>(null);
   const webHistoryRef = useRef<{ entries: string[]; index: number }>({ entries: [project.url], index: 0 });
   const panDragRef = useRef<{ pointerId: number; x: number; y: number; cameraX: number; cameraY: number } | null>(null);
+  const touchPointersRef = useRef(new Map<number, { x: number; y: number }>());
+  const touchGestureRef = useRef<{
+    mode: 'pan' | 'pinch';
+    originX: number;
+    originY: number;
+    cameraX: number;
+    cameraY: number;
+    zoom: number;
+    distance: number;
+    centerX: number;
+    centerY: number;
+  } | null>(null);
   const deviceDockDragRef = useRef<{ pointerId: number; x: number; y: number; originX: number; originY: number; maxX: number; maxY: number } | null>(null);
   const deviceDockDidDragRef = useRef(false);
   const projectRef = useRef(project);
@@ -1092,15 +1105,47 @@ function App() {
     showToast(copy.bookmarkRemoved, 'good');
   };
 
+  const customFrameViewport = (selected: FramePreset, sourceGeometry = frameScreenGeometry(selected, project)) => {
+    const landscape = screenAspect(sourceGeometry) >= 1;
+    const longEdge = Math.max(selected.viewport.width, selected.viewport.height);
+    const shortEdge = Math.min(selected.viewport.width, selected.viewport.height);
+    return landscape ? { width: longEdge, height: shortEdge } : { width: shortEdge, height: longEdge };
+  };
+
   const selectFrame = (selected: FramePreset) => {
+    const viewport = selected.customVariant ? customFrameViewport(selected) : selected.viewport;
     updateProject({
       frameId: selected.id,
-      viewportWidth: selected.viewport.width,
-      viewportHeight: selected.viewport.height,
+      viewportWidth: viewport.width,
+      viewportHeight: viewport.height,
       viewportAuto: true,
       fitMode: 'responsive',
       ...frameAppearance(selected),
     });
+  };
+
+  const rotateCustomFrame = (selected: FramePreset) => {
+    const variant = selected.customVariant;
+    if (!variant) return;
+    const nextGeometry = rotateScreenGeometry90(project.customGeometries[variant]);
+    const viewport = customFrameViewport(selected, nextGeometry);
+    const selectingAnotherFrame = project.frameId !== selected.id;
+    updateProject({
+      frameId: selected.id,
+      viewportWidth: viewport.width,
+      viewportHeight: viewport.height,
+      viewportAuto: true,
+      fitMode: 'responsive',
+      customGeometry: variant === 'desktop' ? nextGeometry : project.customGeometry,
+      customGeometries: { ...project.customGeometries, [variant]: nextGeometry },
+      ...(selectingAnotherFrame ? frameAppearance(selected) : {}),
+    });
+    showToast(
+      viewport.width > viewport.height
+        ? (language === 'tr' ? 'Yatay mod' : 'Landscape mode')
+        : (language === 'tr' ? 'Dikey mod' : 'Portrait mode'),
+      'good',
+    );
   };
 
   const toggleFavoriteFrame = (frameId: string) => {
@@ -1109,9 +1154,10 @@ function App() {
 
   const setBreakpoint = (width: number, height: number, frameId?: string) => {
     const selected = frameId ? getFrame(frameId) : undefined;
+    const viewport = selected?.customVariant ? customFrameViewport(selected) : { width, height };
     updateProject({
-      viewportWidth: width,
-      viewportHeight: height,
+      viewportWidth: viewport.width,
+      viewportHeight: viewport.height,
       viewportAuto: true,
       fitMode: 'responsive',
       ...(selected ? { frameId: selected.id, ...frameAppearance(selected) } : {}),
@@ -1153,14 +1199,62 @@ function App() {
   };
 
   const beginViewportPan = (event: React.PointerEvent<HTMLElement>) => {
-    if (event.button !== 1) return;
+    const touchLike = event.pointerType === 'touch' || event.pointerType === 'pen';
+    if (!touchLike && event.button !== 1) return;
     event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
-    panDragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, cameraX: project.cameraX, cameraY: project.cameraY };
+    try { event.currentTarget.setPointerCapture(event.pointerId); } catch { /* Pointer capture is best effort. */ }
+    if (touchLike) {
+      touchPointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      const points = [...touchPointersRef.current.values()];
+      if (points.length >= 2) {
+        const [first, second] = points;
+        touchGestureRef.current = {
+          mode: 'pinch', originX: 0, originY: 0, cameraX: project.cameraX, cameraY: project.cameraY,
+          zoom: project.cameraZoom, distance: Math.max(1, Math.hypot(second.x - first.x, second.y - first.y)),
+          centerX: (first.x + second.x) / 2, centerY: (first.y + second.y) / 2,
+        };
+      } else {
+        touchGestureRef.current = {
+          mode: 'pan', originX: event.clientX, originY: event.clientY, cameraX: project.cameraX, cameraY: project.cameraY,
+          zoom: project.cameraZoom, distance: 0, centerX: event.clientX, centerY: event.clientY,
+        };
+      }
+    } else {
+      panDragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, cameraX: project.cameraX, cameraY: project.cameraY };
+    }
     setIsPanning(true);
   };
 
   const moveViewportPan = (event: React.PointerEvent<HTMLElement>) => {
+    if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+      if (!touchPointersRef.current.has(event.pointerId)) return;
+      event.preventDefault();
+      touchPointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      const points = [...touchPointersRef.current.values()];
+      const gesture = touchGestureRef.current;
+      if (!gesture) return;
+      if (points.length >= 2) {
+        const [first, second] = points;
+        const centerX = (first.x + second.x) / 2;
+        const centerY = (first.y + second.y) / 2;
+        const distance = Math.max(1, Math.hypot(second.x - first.x, second.y - first.y));
+        const baseline = gesture.mode === 'pinch' ? gesture : {
+          ...gesture, mode: 'pinch' as const, distance, centerX, centerY, zoom: project.cameraZoom,
+          cameraX: project.cameraX, cameraY: project.cameraY,
+        };
+        if (gesture.mode !== 'pinch') touchGestureRef.current = baseline;
+        const cameraX = clamp(baseline.cameraX + ((centerX - baseline.centerX) / Math.max(1, stageSize.width)) * (100 / 0.28), -100, 100);
+        const cameraY = clamp(baseline.cameraY + ((centerY - baseline.centerY) / Math.max(1, stageSize.height)) * (100 / 0.28), -100, 100);
+        const cameraZoom = clamp(baseline.zoom * (distance / Math.max(1, baseline.distance)), 45, 220);
+        updateProject({ cameraX: Math.round(cameraX * 10) / 10, cameraY: Math.round(cameraY * 10) / 10, cameraZoom: Math.round(cameraZoom * 10) / 10 });
+      } else if (points.length === 1 && gesture.mode === 'pan') {
+        const point = points[0];
+        const cameraX = clamp(gesture.cameraX + ((point.x - gesture.originX) / Math.max(1, stageSize.width)) * (100 / 0.28), -100, 100);
+        const cameraY = clamp(gesture.cameraY + ((point.y - gesture.originY) / Math.max(1, stageSize.height)) * (100 / 0.28), -100, 100);
+        updateProject({ cameraX: Math.round(cameraX * 10) / 10, cameraY: Math.round(cameraY * 10) / 10 });
+      }
+      return;
+    }
     const drag = panDragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
     const cameraX = clamp(drag.cameraX + ((event.clientX - drag.x) / Math.max(1, stageSize.width)) * (100 / 0.28), -100, 100);
@@ -1169,6 +1263,22 @@ function App() {
   };
 
   const endViewportPan = (event: React.PointerEvent<HTMLElement>) => {
+    if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+      touchPointersRef.current.delete(event.pointerId);
+      const points = [...touchPointersRef.current.values()];
+      if (points.length === 1) {
+        const point = points[0];
+        touchGestureRef.current = {
+          mode: 'pan', originX: point.x, originY: point.y, cameraX: projectRef.current.cameraX, cameraY: projectRef.current.cameraY,
+          zoom: projectRef.current.cameraZoom, distance: 0, centerX: point.x, centerY: point.y,
+        };
+      } else if (points.length === 0) {
+        touchGestureRef.current = null;
+        setIsPanning(false);
+      }
+      try { if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); } catch { /* Ignore cancellation races. */ }
+      return;
+    }
     if (panDragRef.current?.pointerId !== event.pointerId) return;
     panDragRef.current = null;
     setIsPanning(false);
@@ -1184,14 +1294,8 @@ function App() {
   const beginDeviceSettingsDrag = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
     const target = event.target as HTMLElement;
-    const collapsedHandle = target.closest('[data-dock-drag-handle="true"]');
-    if (!deviceSettingsOpen && !collapsedHandle) return;
-    if (!collapsedHandle && target.closest('button,input,select,textarea,a,label,[contenteditable="true"]')) return;
-    const scrollColumn = target.closest('.device-settings-group');
-    if (scrollColumn) {
-      const columnRect = scrollColumn.getBoundingClientRect();
-      if (event.clientX >= columnRect.right - 8) return;
-    }
+    const dragHandle = target.closest('[data-dock-drag-handle="true"]');
+    if (!dragHandle) return;
     const canvas = previewCanvasRef.current;
     const dock = deviceSettingsDockRef.current;
     if (!canvas || !dock) return;
@@ -1457,6 +1561,10 @@ function App() {
   };
 
   const browserDownload = (dataUrl: string, name: string) => {
+    if (window.RMSAndroid) {
+      window.RMSAndroid.postMessage(JSON.stringify({ type: 'save-data-url', name, dataUrl }));
+      return;
+    }
     const link = document.createElement('a');
     link.href = dataUrl;
     link.download = name;
@@ -1466,6 +1574,10 @@ function App() {
   };
 
   const browserDownloadSvg = (svg: string, name: string) => {
+    if (window.RMSAndroid) {
+      window.RMSAndroid.postMessage(JSON.stringify({ type: 'save-text', name, mime: 'image/svg+xml', text: svg }));
+      return;
+    }
     const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
     const link = document.createElement('a');
     link.href = url;
@@ -1823,12 +1935,21 @@ function App() {
             <section className="frame-group custom-frame-group">
               <div className="group-label">{language === 'tr' ? 'Özel çerçeve' : 'Custom frame'}</div>
               <div className="frame-grid compact-frame-grid">
-                {customFrames.map((item) => (
-                  <button key={item.id} data-frame-id={item.id} className={`frame-card compact-frame-card ${item.id === frame.id ? 'selected' : ''}`} onClick={() => selectFrame(item)}>
-                    <span className={`frame-glyph kind-${item.kind}`} style={{ '--accent': item.accent } as React.CSSProperties}>{item.thumbnail}</span>
-                    <span className="frame-card-copy"><strong>{item.customVariant === 'desktop' ? (language === 'tr' ? 'Bilgisayar' : 'Desktop') : item.customVariant === 'tablet' ? 'Tablet' : (language === 'tr' ? 'Telefon' : 'Phone')}</strong><small>{item.viewport.width} × {item.viewport.height}</small></span>
-                  </button>
-                ))}
+                {customFrames.map((item) => {
+                  const viewport = customFrameViewport(item);
+                  const canRotate = item.customVariant === 'tablet' || item.customVariant === 'phone';
+                  const landscape = viewport.width > viewport.height;
+                  const orientationLabel = landscape
+                    ? (language === 'tr' ? 'Dikey moda çevir' : 'Switch to portrait')
+                    : (language === 'tr' ? 'Yatay moda çevir' : 'Switch to landscape');
+                  return <div className={`custom-frame-row ${canRotate ? '' : 'fixed-orientation'}`} key={item.id}>
+                    <button data-frame-id={item.id} className={`frame-card compact-frame-card ${item.id === frame.id ? 'selected' : ''}`} onClick={() => selectFrame(item)}>
+                      <span className={`frame-glyph kind-${item.kind}`} style={{ '--accent': item.accent } as React.CSSProperties}>{item.thumbnail}</span>
+                      <span className="frame-card-copy"><strong>{item.customVariant === 'desktop' ? (language === 'tr' ? 'Bilgisayar' : 'Desktop') : item.customVariant === 'tablet' ? 'Tablet' : (language === 'tr' ? 'Telefon' : 'Phone')}</strong><small>{viewport.width} × {viewport.height}</small></span>
+                    </button>
+                    {canRotate && <button className="custom-frame-orientation" type="button" title={orientationLabel} aria-label={orientationLabel} aria-pressed={landscape} onClick={() => rotateCustomFrame(item)}>{landscape ? <RectangleHorizontal size={14} /> : <RectangleVertical size={14} />}</button>}
+                  </div>;
+                })}
               </div>
             </section>
 
@@ -1954,7 +2075,9 @@ function App() {
                 type="button"
                 title={language === 'tr' ? 'En ve boyu değiştir' : 'Swap width and height'}
                 aria-label={language === 'tr' ? 'En ve boyu değiştir' : 'Swap width and height'}
-                onClick={() => updateProject({ viewportWidth: effectiveViewport.height, viewportHeight: effectiveViewport.width, viewportAuto: false, fitMode: 'responsive' })}
+                onClick={() => (frame.customVariant === 'tablet' || frame.customVariant === 'phone')
+                  ? rotateCustomFrame(frame)
+                  : updateProject({ viewportWidth: effectiveViewport.height, viewportHeight: effectiveViewport.width, viewportAuto: false, fitMode: 'responsive' })}
               ><ArrowLeftRight size={14} /></button>
               <button
                 className="viewport-reset"
@@ -2058,10 +2181,10 @@ function App() {
               ref={deviceSettingsDockRef}
               className={`device-settings-dock ${deviceSettingsOpen ? 'open' : ''} ${isDeviceDockDragging ? 'dragging' : ''}`}
               style={deviceSettingsDockStyle}
-              onPointerDown={beginDeviceSettingsDrag}
-              onPointerMove={moveDeviceSettingsDrag}
-              onPointerUp={endDeviceSettingsDrag}
-              onPointerCancel={endDeviceSettingsDrag}
+              onPointerDown={(event) => { event.stopPropagation(); beginDeviceSettingsDrag(event); }}
+              onPointerMove={(event) => { event.stopPropagation(); moveDeviceSettingsDrag(event); }}
+              onPointerUp={(event) => { event.stopPropagation(); endDeviceSettingsDrag(event); }}
+              onPointerCancel={(event) => { event.stopPropagation(); endDeviceSettingsDrag(event); }}
               onWheel={(event) => event.stopPropagation()}
             >
               <button
@@ -2078,7 +2201,7 @@ function App() {
                 }}
               >
                 <span><SlidersHorizontal size={14} /> {copy.deviceSettings}</span>
-                <small className="device-settings-drag-handle" data-dock-drag-handle="true" title={language === 'tr' ? 'Tut ve taşı' : 'Drag to move'}>{frame.name[language]}</small>
+                <small className="device-settings-drag-handle" data-dock-drag-handle="true" title={language === 'tr' ? 'Basılı tut ve taşı' : 'Hold and drag'}><Move size={13} /><span>{language === 'tr' ? 'TUT · TAŞI' : 'HOLD · DRAG'}</span></small>
                 <ChevronDown className={deviceSettingsOpen ? 'open' : ''} size={14} />
               </button>
               {deviceSettingsOpen && (
@@ -2247,6 +2370,8 @@ function App() {
           </div>
         </aside>
       </div>
+
+      <PublishingFooter />
 
       <input ref={fileInputRef} hidden type="file" accept="image/png,image/jpeg,image/webp" onChange={async (event) => { await handleGenericFile(event.target.files?.[0]); event.target.value = ''; }} />
       {toast && <div className={`toast ${toast.tone}`}>{toast.tone === 'good' ? <Check size={16} /> : toast.tone === 'bad' ? <CircleAlert size={16} /> : <Sparkles size={16} />}<span>{toast.text}</span><button onClick={() => setToast(null)}><X size={14} /></button></div>}

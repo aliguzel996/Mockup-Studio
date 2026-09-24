@@ -85,6 +85,7 @@ test('preview toolbar swaps viewport dimensions and omits dead preview actions',
   const app = read('src/App.tsx');
   const styles = read('src/styles.css');
   assert.match(app, /className="viewport-swap"/);
+  assert.match(app, /rotateCustomFrame\(frame\)/);
   assert.match(app, /viewportWidth: effectiveViewport\.height, viewportHeight: effectiveViewport\.width, viewportAuto: false, fitMode: 'responsive'/);
   assert.match(app, /<ArrowLeftRight size=\{14\}/);
   assert.doesNotMatch(app, /className="live-pill"/);
@@ -96,6 +97,22 @@ test('preview toolbar swaps viewport dimensions and omits dead preview actions',
   assert.match(app, /setBreakpoint\(402, 874, 'custom-phone'\)/);
   assert.doesNotMatch(app, /copy\.compare/);
   assert.doesNotMatch(app, /<button onClick=\{\(\) => setActivePanel\('camera'\)\}><Maximize2/);
+});
+
+test('custom tablet and phone rotate their body, live viewport, and saved geometry together', () => {
+  const app = read('src/App.tsx');
+  const geometry = read('src/geometry.ts');
+  const styles = read('src/styles.css');
+  assert.match(geometry, /export const rotateScreenGeometry90/);
+  assert.match(geometry, /x: centerX - physicalY \/ stageAspect/);
+  assert.match(geometry, /y: centerY \+ physicalX/);
+  assert.match(app, /const rotateCustomFrame = \(selected: FramePreset\)/);
+  assert.match(app, /customGeometries: \{ \.\.\.project\.customGeometries, \[variant\]: nextGeometry \}/);
+  assert.match(app, /item\.customVariant === 'tablet' \|\| item\.customVariant === 'phone'/);
+  assert.match(app, /className="custom-frame-orientation"/);
+  assert.match(app, /<RectangleHorizontal size=\{14\}/);
+  assert.match(app, /<RectangleVertical size=\{14\}/);
+  assert.match(styles, /\.custom-frame-orientation/);
 });
 
 test('camera sliders expose default reset buttons and double-click reset', () => {
@@ -120,8 +137,10 @@ test('device appearance controls live in a collapsible glass viewport drawer', (
   assert.match(styles, /\.device-settings-group \{[^}]*overflow-y: auto/);
   assert.match(styles, /\*::\-webkit-scrollbar-thumb \{[^}]*border-radius: 0/);
   assert.match(styles, /\*::\-webkit-scrollbar-button \{[^}]*display: none/);
-  assert.match(app, /onPointerDown=\{beginDeviceSettingsDrag\}/);
-  assert.match(app, /onPointerMove=\{moveDeviceSettingsDrag\}/);
+  assert.match(app, /event\.stopPropagation\(\); beginDeviceSettingsDrag\(event\)/);
+  assert.match(app, /event\.stopPropagation\(\); moveDeviceSettingsDrag\(event\)/);
+  assert.match(app, /if \(!dragHandle\) return/);
+  assert.match(app, /TUT · TAŞI/);
   assert.match(app, /deviceSettingsDockStyle/);
   assert.match(styles, /\.device-settings-glass \{[^}]*cursor: grab/);
   assert.match(styles, /\.device-settings-dock\.dragging \.device-settings-glass/);
@@ -304,7 +323,7 @@ test('JPG PNG and native SVG exports are wired without foreignObject raster wrap
   assert.doesNotMatch(vector, /foreignObject/i);
   assert.equal(pkg.dependencies['dom-to-svg'], '^0.12.2');
   assert.equal(pkg.dependencies.fontkit, '^2.0.4');
-  assert.equal(pkg.dependencies['@xmldom/xmldom'], '^0.9.10');
+  assert.equal(pkg.dependencies['@xmldom/xmldom'], '^0.9.12');
 });
 
 test('preview framing offers toggleable ratios and landscape or portrait export crops', () => {
@@ -479,7 +498,7 @@ test('Windows release produces setup and portable artifacts', () => {
   assert.match(pkg.build.portable.artifactName, /Portable/);
   assert.equal(pkg.build.nsis.createDesktopShortcut, true);
   assert.equal(pkg.build.nsis.createStartMenuShortcut, true);
-  assert.match(releaseScript, /!first\.startsWith\('\.tmp-'\)/);
+  assert.match(releaseScript, /first\.startsWith\('\.tmp-'\)/);
 });
 
 test('YCSWU manifest is catalog ready', () => {
@@ -517,7 +536,6 @@ test('web release is subfolder-safe and ships complete search and AI discovery m
   const robots = read('public/robots.txt');
   const sitemap = read('public/sitemap.xml');
   const llms = read('public/llms.txt');
-  const htaccess = read('public/.htaccess');
   assert.match(index, /rel="canonical" href="https:\/\/ycswu\.co\/mockup-studio\/"/);
   assert.match(index, /type="application\/ld\+json"/);
   assert.match(index, /"@type": \["SoftwareApplication", "WebApplication"\]/);
@@ -527,9 +545,8 @@ test('web release is subfolder-safe and ships complete search and AI discovery m
   assert.match(robots, /Sitemap: https:\/\/ycswu\.co\/mockup-studio\/sitemap\.xml/);
   assert.match(sitemap, /<loc>https:\/\/ycswu\.co\/mockup-studio\/<\/loc>/);
   assert.match(llms, /## Core capabilities/);
-  assert.match(htaccess, /RewriteBase \/mockup-studio\//);
-  assert.match(htaccess, /DirectoryIndex index\.html/);
-  for (const entry of ['.htaccess', 'index.html', 'favicon.ico', 'favicon-16.png', 'favicon-32.png', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'og-image.png', 'robots.txt', 'sitemap.xml', 'site.webmanifest', 'llms.txt']) {
+  assert.equal(fs.existsSync(path.join(root, 'public', '.htaccess')), false);
+  for (const entry of ['index.html', 'favicon.ico', 'favicon-16.png', 'favicon-32.png', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'og-image.png', 'robots.txt', 'sitemap.xml', 'site.webmanifest', 'llms.txt']) {
     assert.match(packageScript, new RegExp(entry.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
   assert.match(packageScript, /Web-cPanel-\$\{version\}\.zip/);

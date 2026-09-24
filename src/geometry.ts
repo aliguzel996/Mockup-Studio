@@ -35,6 +35,28 @@ export const screenAspect = (geometry: ScreenGeometry, stageAspect = 16 / 9) => 
   return ((top + bottom) / 2) / Math.max(0.0001, (left + right) / 2);
 };
 
+export const rotateScreenGeometry90 = (geometry: ScreenGeometry, stageAspect = 16 / 9): ScreenGeometry => {
+  const points = [geometry.topLeft, geometry.topRight, geometry.bottomRight, geometry.bottomLeft];
+  const centerX = points.reduce((sum, point) => sum + point.x, 0) / points.length;
+  const centerY = points.reduce((sum, point) => sum + point.y, 0) / points.length;
+  const rotateClockwise = (point: { x: number; y: number }) => {
+    const physicalX = (point.x - centerX) * stageAspect;
+    const physicalY = point.y - centerY;
+    return {
+      x: centerX - physicalY / stageAspect,
+      y: centerY + physicalX,
+    };
+  };
+
+  return {
+    ...geometry,
+    topLeft: rotateClockwise(geometry.bottomLeft),
+    topRight: rotateClockwise(geometry.topLeft),
+    bottomRight: rotateClockwise(geometry.topRight),
+    bottomLeft: rotateClockwise(geometry.bottomRight),
+  };
+};
+
 export const adjustScreenGeometry = (
   geometry: ScreenGeometry,
   state: Pick<ProjectState, 'screenScaleX' | 'screenScaleY' | 'screenOffsetX' | 'screenOffsetY'>,

@@ -61,6 +61,7 @@ Wireframe açıldığında website görünür kalır; kontür, ekran içeriğini
 Cihaz yerleşimi çıktıdan sonra düzeltilmek yerine doğrudan önizleme alanında hazırlanır.
 
 - Orta mouse tuşuyla önizlemede hareket etme.
+- Dokunmatik cihazlarda tek parmak veya kalemle hareket etme; iki parmakla zoom ve konumlandırma.
 - Mouse tekerleğiyle zoom.
 - Kamera X/Y, rotasyon, vertical tilt ve horizontal tilt ayarları.
 - Her kontrolü ayrı sıfırlama veya slider'a çift tıklayarak varsayılana dönme.
@@ -103,9 +104,12 @@ Bookmark'lar, Recent URL listesi, favoriler, kayıtlı cihazlar ve editör terci
 
 ## Sürümler
 
+- **Android tablet:** yerel uygulama dosyalarını taşıyan; dokunmatik pan, pinch zoom, dikey/yatay düzen, sistem dosya seçimi ve Downloads alanına çıktı kaydı sunan kurulabilir sürüm.
 - **Windows Setup:** tam Chromium capture akışına sahip kurulan masaüstü uygulaması.
 - **Windows Portable:** kurulum gerektirmeyen aynı masaüstü deneyimi.
 - **Web:** normal bir web sunucusunda veya cPanel hesabında çalışabilen statik tarayıcı sürümü.
+
+Android ve web sürümleri üçüncü taraf siteleri gösterirken platformun tarayıcı güvenlik kurallarına uyar. Tarayıcı iframe erişimini engelleyen siteler için sınırsız gömülü Chromium capture akışı Windows sürümündedir.
 
 Responsive Mockup Studio, **YCSWU Tools** ailesinin bir parçasıdır.
 

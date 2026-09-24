@@ -1,6 +1,6 @@
 {
   "name": "responsive-mockup-studio",
-  "version": "1.2.8",
+  "version": "1.3.1",
   "description": "Render real responsive websites inside production-ready device mockups.",
   "type": "module",
   "main": "electron/main.cjs",
@@ -15,18 +15,22 @@
     "assets": "node scripts/generate-assets.mjs",
     "test": "npm run test:unit",
     "test:unit": "node --test tests/*.test.mjs",
+    "test:runtime": "node tools/run-web-runtime-tests.mjs",
     "typecheck": "tsc --noEmit",
     "validate:web-seo": "node tests/validate-cpanel-build.mjs",
-    "qa": "npm run assets && npm run typecheck && npm run test:unit && npm run build:web && node tests/validate-build.mjs && npm run validate:web-seo",
+    "android:prepare": "npm run build:web && node scripts/prepare-android.mjs",
+    "android:release": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/build-android-release.ps1",
+    "qa": "npm run assets && npm run typecheck && npm run test:unit && npm run build:web && node tests/validate-build.mjs && npm run validate:web-seo && npm run test:runtime",
     "dist:win": "npm run qa && npm run assets && electron-builder --win nsis portable",
     "release:all": "npm run dist:win && node scripts/package-release.mjs"
   },
   "dependencies": {
+    "@fontsource/space-grotesk": "^5.2.8",
     "@fontsource/space-mono": "^5.3.0",
-    "@xmldom/xmldom": "^0.9.10",
+    "@xmldom/xmldom": "^0.9.12",
     "dom-to-svg": "^0.12.2",
     "fontkit": "^2.0.4",
-    "sharp": "0.35.3"
+    "sharp": "^0.35.4"
   },
   "devDependencies": {
     "@types/react": "18.3.18",
