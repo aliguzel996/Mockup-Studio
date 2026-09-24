@@ -1,6 +1,6 @@
 # Google Play Data safety draft
 
-This is a submission draft based on source and manifest review for version 1.3.7 (versionCode 13007). Recheck it against the final Play Console form before submission.
+This is a submission draft based on source and manifest review for version 1.3.8 (versionCode 13008). Recheck it against the final Play Console form before submission.
 
 ## Recommended answers
 
@@ -23,6 +23,7 @@ Projects, saved devices, bookmarks, recent URLs, imported images, theme, languag
 ## Permissions
 
 - `android.permission.INTERNET`: required to open user-selected website previews.
-- No camera, microphone, location, contacts, notification, advertising-ID, or broad storage permission is declared.
+- `android.permission.CAMERA`: requested only after the user activates a camera feature inside an HTTPS website preview. The selected website handles that camera stream under its own policy; Responsive Mockup Studio does not send frames to a YCSWU endpoint.
+- No microphone, location, contacts, notification, advertising-ID, or broad storage permission is declared.
 - File selection uses Android's system picker.
 - Android 10+ export uses MediaStore Downloads; no broad storage permission is requested.

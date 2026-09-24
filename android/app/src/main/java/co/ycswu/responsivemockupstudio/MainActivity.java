@@ -1,10 +1,11 @@
 package co.ycswu.responsivemockupstudio;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.Configuration;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
 import android.net.Uri;
@@ -22,6 +23,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.webkit.ValueCallback;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
+import android.webkit.PermissionRequest;
 import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -31,7 +33,6 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 import android.widget.FrameLayout;
-import android.util.DisplayMetrics;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -48,6 +49,7 @@ import java.util.Base64;
 
 public final class MainActivity extends Activity {
     private static final int FILE_CHOOSER_REQUEST = 6013;
+    private static final int CAMERA_PERMISSION_REQUEST = 6014;
     private static final String APP_ORIGIN = "https://appassets.androidplatform.net";
     private FrameLayout rootLayout;
     private WebView webView;
@@ -57,6 +59,7 @@ public final class MainActivity extends Activity {
     private String previewCss = "";
     private int previewRetryCount;
     private ValueCallback<Uri[]> pendingFileCallback;
+    private PermissionRequest pendingCameraRequest;
     private View fullscreenView;
     private WebChromeClient.CustomViewCallback fullscreenCallback;
     private long lastBackPressedAt;
@@ -121,6 +124,18 @@ public final class MainActivity extends Activity {
         });
         WebChromeClient sharedChromeClient = new WebChromeClient() {
             @Override
+            public void onPermissionRequest(PermissionRequest request) {
+                runOnUiThread(() -> handleWebsitePermissionRequest(request));
+            }
+
+            @Override
+            public void onPermissionRequestCanceled(PermissionRequest request) {
+                runOnUiThread(() -> {
+                    if (pendingCameraRequest == request) pendingCameraRequest = null;
+                });
+            }
+
+            @Override
             public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
                 if (pendingFileCallback != null) pendingFileCallback.onReceiveValue(null);
                 pendingFileCallback = callback;
@@ -173,6 +188,26 @@ public final class MainActivity extends Activity {
         webView.loadUrl(APP_ORIGIN + "/index.html");
     }
 
+    private void handleWebsitePermissionRequest(@NonNull PermissionRequest request) {
+        Uri origin = request.getOrigin();
+        boolean secureOrigin = origin != null && "https".equalsIgnoreCase(origin.getScheme());
+        boolean wantsVideo = false;
+        for (String resource : request.getResources()) {
+            if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)) wantsVideo = true;
+        }
+        if (!secureOrigin || !wantsVideo) {
+            request.deny();
+            return;
+        }
+        if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            request.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE});
+            return;
+        }
+        if (pendingCameraRequest != null) pendingCameraRequest.deny();
+        pendingCameraRequest = request;
+        requestPermissions(new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_REQUEST);
+    }
+
     private boolean isAppUrl(@Nullable Uri uri) {
         return uri != null
                 && "https".equalsIgnoreCase(uri.getScheme())
@@ -193,14 +228,12 @@ public final class MainActivity extends Activity {
         previewContainer.setVisibility(View.GONE);
         previewContainer.setBackgroundColor(android.graphics.Color.BLACK);
 
-        // Render the requested responsive viewport at 1 CSS px = 1 physical px.
-        // Using the tablet's 2x-3x display density here turns a 1440x900 website
-        // into an unnecessarily huge GPU surface and can terminate the WebView
-        // renderer on canvas-heavy pages.
-        Configuration previewConfiguration = new Configuration(getResources().getConfiguration());
-        previewConfiguration.densityDpi = DisplayMetrics.DENSITY_DEFAULT;
-        Context previewContext = createConfigurationContext(previewConfiguration);
-        previewWebView = new WebView(previewContext);
+        // WebView must receive the Activity context. A configuration-only context can
+        // lose browser capabilities on vendor WebView builds and return ERR_ACCESS_DENIED.
+        // Initial scale/default zoom keep one CSS pixel mapped to one render pixel so a
+        // desktop viewport does not allocate a tablet-density-sized GPU surface.
+        previewWebView = new WebView(this);
+        previewWebView.setInitialScale(100);
         previewWebView.setBackgroundColor(android.graphics.Color.BLACK);
         previewWebView.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false);
         WebSettings previewSettings = previewWebView.getSettings();
@@ -219,6 +252,7 @@ public final class MainActivity extends Activity {
         previewSettings.setCacheMode(WebSettings.LOAD_NO_CACHE);
         previewSettings.setUseWideViewPort(true);
         previewSettings.setLoadWithOverviewMode(false);
+        previewSettings.setDefaultZoom(WebSettings.ZoomDensity.MEDIUM);
         previewSettings.setLoadsImagesAutomatically(true);
         previewSettings.setBlockNetworkImage(false);
         previewSettings.setBlockNetworkLoads(false);
@@ -391,11 +425,10 @@ public final class MainActivity extends Activity {
             containerParams.topMargin = top;
             previewContainer.setLayoutParams(containerParams);
 
-            double density = Math.max(1d, previewWebView.getResources().getDisplayMetrics().density);
-            double virtualWidth = Math.max(1d, virtualJson.optDouble("width", surfaceWidth / density));
-            double virtualHeight = Math.max(1d, virtualJson.optDouble("height", surfaceHeight / density));
-            double contentWidth = virtualWidth * density;
-            double contentHeight = virtualHeight * density;
+            double virtualWidth = Math.max(1d, virtualJson.optDouble("width", surfaceWidth));
+            double virtualHeight = Math.max(1d, virtualJson.optDouble("height", surfaceHeight));
+            double contentWidth = virtualWidth;
+            double contentHeight = virtualHeight;
             double textureReduction = Math.min(1d, 4096d / Math.max(contentWidth, contentHeight));
             int layoutWidth = Math.max(1, (int) Math.round(contentWidth * textureReduction));
             int layoutHeight = Math.max(1, (int) Math.round(contentHeight * textureReduction));
@@ -618,6 +651,19 @@ public final class MainActivity extends Activity {
     }
 
     @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode != CAMERA_PERMISSION_REQUEST || pendingCameraRequest == null) return;
+        PermissionRequest request = pendingCameraRequest;
+        pendingCameraRequest = null;
+        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            request.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE});
+        } else {
+            request.deny();
+        }
+    }
+
+    @Override
     @SuppressWarnings("deprecation")
     public void onBackPressed() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU && handleBack()) return;
@@ -641,6 +687,10 @@ public final class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         if (pendingFileCallback != null) pendingFileCallback.onReceiveValue(null);
+        if (pendingCameraRequest != null) {
+            pendingCameraRequest.deny();
+            pendingCameraRequest = null;
+        }
         hideFullscreenView();
         if (previewWebView != null) {
             previewWebView.stopLoading();

@@ -1,6 +1,6 @@
 # GoDaddy cPanel kurulumu
 
-Hazır paket: `Responsive-Mockup-Studio-Web-cPanel-1.3.7.zip`
+Hazır paket: `Responsive-Mockup-Studio-Web-cPanel-1.3.8.zip`
 
 Hedef adres: `https://ycswu.co/mockup-studio/`
 
@@ -12,13 +12,13 @@ Hedef adres: `https://ycswu.co/mockup-studio/`
 6. ZIP'i seçip **Extract** de; hedef aynı `mockup-studio` klasörü olsun.
 7. Çıkartma sonunda `public_html/mockup-studio/index.html` bulunduğunu kontrol et. `mockup-studio/Responsive-Mockup-Studio-Web/...` gibi fazladan iç klasör olmamalı.
 8. ZIP dosyasını sunucudan silebilirsin.
-9. `https://ycswu.co/mockup-studio/` adresini gizli sekmede aç. Eski cache görünürse sürüme özel `https://ycswu.co/mockup-studio/index-1.3.7.html` adresini bir kez aç.
+9. `https://ycswu.co/mockup-studio/` adresini gizli sekmede aç. Eski cache görünürse sürüme özel `https://ycswu.co/mockup-studio/index-1.3.8.html` adresini bir kez aç.
 
 ## Beklenen kök dosyalar
 
 - `index.html`
-- `index-1.3.7.html`
-- `release-1.3.7.json`
+- `index-1.3.8.html`
+- `release-1.3.8.json`
 - `assets/`
 - `icon.svg`
 - `og-image.png`

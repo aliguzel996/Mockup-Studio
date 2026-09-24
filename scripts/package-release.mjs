@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const packageJson = JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8'));
 const version = packageJson.version;
-const versionCode = 13007;
+const versionCode = 13008;
 const deliveryBase = process.env.RMS_DELIVERY_DIR
   ? path.resolve(process.env.RMS_DELIVERY_DIR)
   : path.resolve(root, '..', '..', 'deliveries');
@@ -248,7 +248,7 @@ for (const name of ['electron-ui-1600x980.png', 'electron-device-panel-1600x980.
   if (fsSync.existsSync(source)) await fs.copyFile(source, path.join(screenshotTarget, `windows-${name}`));
 }
 await fs.writeFile(path.join(dirs.REPORT, 'TESLIM-RAPORU-TR.md'), [
-  '# Responsive Mockup Studio 1.3.7 teslim raporu',
+  '# Responsive Mockup Studio 1.3.8 teslim raporu',
   '',
   '## Değişiklik',
   '',
@@ -277,7 +277,7 @@ await fs.writeFile(path.join(dirs.REPORT, 'TESLIM-RAPORU-TR.md'), [
 ].join('\r\n'), 'utf8');
 
 await fs.writeFile(path.join(delivery, 'START-HERE-TR.txt'), [
-  'RESPONSIVE MOCKUP STUDIO 1.3.7',
+  'RESPONSIVE MOCKUP STUDIO 1.3.8',
   '',
   `Android tablet kurulumu: ANDROID/${apkName}`,
   `Google Play paketi: ANDROID/${aabName}`,
