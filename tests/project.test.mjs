@@ -298,6 +298,21 @@ test('capture and export contracts cover high-density and alpha workflows', () =
   assert.match(app, /customMaskImage/);
 });
 
+test('dynamic canvas and video pixels survive web Windows and Android export', () => {
+  const app = read('src/App.tsx');
+  const main = read('electron/main.cjs');
+  const android = read('android/app/src/main/java/co/ycswu/responsivemockupstudio/MainActivity.java');
+  assert.match(app, /querySelectorAll\('canvas'\)/);
+  assert.match(app, /querySelectorAll\('video'\)/);
+  assert.match(app, /data-rms-media-snapshot/);
+  assert.match(app, /canvas\.toDataURL\('image\/png'\)/);
+  assert.match(main, /data-rms-media-snapshot/);
+  assert.match(main, /canvas\.toDataURL\('image\/png'\)/);
+  assert.match(android, /capture-rendered-region/);
+  assert.match(android, /PixelCopy\.request/);
+  assert.match(android, /__rmsResolveAndroidCapture/);
+});
+
 test('JPG PNG and native SVG exports are wired without foreignObject raster wrappers', () => {
   const app = read('src/App.tsx');
   const main = read('electron/main.cjs');
@@ -509,16 +524,15 @@ test('YCSWU manifest is catalog ready', () => {
   assert.ok(manifest.outputFormats.includes('SVG'));
 });
 
-test('application logo is the flat double-outline frame on black', () => {
+test('application logo uses the supplied white vector artwork on black across every target', () => {
   const icon = read('public/icon.svg');
   const webManifest = JSON.parse(read('public/site.webmanifest'));
   const index = read('index.html');
   const assetScript = read('scripts/generate-assets.mjs');
-  assert.equal((icon.match(/<rect\b/g) || []).length, 3);
-  assert.match(icon, /<rect width="512" height="512" fill="#000000"\/>/);
-  assert.equal((icon.match(/class="outline"/g) || []).length, 2);
-  assert.doesNotMatch(icon, /<path\b|<circle\b|<ellipse\b|<polygon\b/);
-  assert.doesNotMatch(icon, /quadratic|curve|stand|camera/i);
+  assert.match(icon, /viewBox="0 0 512 512"/);
+  assert.match(icon, /<rect width="512" height="512"\/>/);
+  assert.match(icon, /\.st0\s*\{\s*fill:\s*#f2f2ef;/);
+  assert.ok((icon.match(/<path class="st0"/g) || []).length >= 1);
   assert.ok(webManifest.icons.some((entry) => entry.src === './icon.svg' && entry.type === 'image/svg+xml'));
   assert.ok(webManifest.icons.some((entry) => entry.src === './icon-192.png' && entry.sizes === '192x192'));
   assert.ok(webManifest.icons.some((entry) => entry.src === './icon-512.png' && entry.sizes === '512x512'));

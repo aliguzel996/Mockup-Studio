@@ -70,6 +70,21 @@ const FRAMES_PANEL_KEY = 'rms.frames-panel.v1';
 const SAVED_MONITORS_KEY = 'rms.saved-monitors.v1';
 const FAVORITE_FRAMES_KEY = 'rms.favorite-frames.v1';
 
+const androidCaptureResolvers = new Map<string, {
+  resolve: (dataUrl: string) => void;
+  reject: (error: Error) => void;
+  timeout: number;
+}>();
+
+window.__rmsResolveAndroidCapture = (requestId, dataUrl, error) => {
+  const pending = androidCaptureResolvers.get(requestId);
+  if (!pending) return;
+  window.clearTimeout(pending.timeout);
+  androidCaptureResolvers.delete(requestId);
+  if (dataUrl) pending.resolve(dataUrl);
+  else pending.reject(new Error(error || 'Android preview capture failed.'));
+};
+
 export const createDefaultProject = (): ProjectState => ({
   schemaVersion: 1,
   name: 'Untitled mockup',
@@ -477,17 +492,84 @@ const collectPageElements = (document: Document, hiddenSelectorText: string): Pa
     .map(({ score: _score, ...item }) => item);
 };
 
+const replaceDynamicMediaWithSnapshots = async (document: Document) => {
+  const replacements: Array<{ original: Element; snapshot: HTMLImageElement }> = [];
+  const installSnapshot = async (original: HTMLCanvasElement | HTMLVideoElement, dataUrl: string) => {
+    const snapshot = document.createElement('img');
+    for (const attribute of Array.from(original.attributes)) snapshot.setAttribute(attribute.name, attribute.value);
+    const rect = original.getBoundingClientRect();
+    snapshot.src = dataUrl;
+    snapshot.setAttribute('data-rms-media-snapshot', original.tagName.toLowerCase());
+    snapshot.style.width = `${rect.width}px`;
+    snapshot.style.height = `${rect.height}px`;
+    snapshot.style.objectFit = 'fill';
+    original.replaceWith(snapshot);
+    try { await snapshot.decode(); } catch { /* The data URL is already complete. */ }
+    replacements.push({ original, snapshot });
+  };
+
+  for (const canvas of Array.from(document.querySelectorAll('canvas'))) {
+    try {
+      if (canvas.width > 0 && canvas.height > 0) await installSnapshot(canvas, canvas.toDataURL('image/png'));
+    } catch { /* A tainted canvas is handled by native Chromium/Android capture instead. */ }
+  }
+  for (const video of Array.from(document.querySelectorAll('video'))) {
+    try {
+      if (video.readyState < 2 || video.videoWidth <= 0 || video.videoHeight <= 0) continue;
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const context = canvas.getContext('2d');
+      if (!context) continue;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      await installSnapshot(video, canvas.toDataURL('image/png'));
+    } catch { /* Cross-origin video pixels require native capture. */ }
+  }
+
+  return () => {
+    for (const { original, snapshot } of replacements.reverse()) {
+      if (snapshot.isConnected) snapshot.replaceWith(original);
+    }
+  };
+};
+
 const serializePageSvg = async (document: Document, width: number, height: number) => {
   const view = document.defaultView;
   if (!view) throw new Error('Preview document is not available.');
-  const output = documentToSVG(document, {
-    captureArea: new DOMRect(view.scrollX, view.scrollY, width, height),
-    keepLinks: false,
-  });
-  await inlineResources(output.documentElement);
-  output.documentElement.setAttribute('data-rms-vector-source', document.location.href);
-  return new XMLSerializer().serializeToString(output);
+  const restoreMedia = await replaceDynamicMediaWithSnapshots(document);
+  try {
+    const output = documentToSVG(document, {
+      captureArea: new DOMRect(view.scrollX, view.scrollY, width, height),
+      keepLinks: false,
+    });
+    await inlineResources(output.documentElement);
+    output.documentElement.setAttribute('data-rms-vector-source', document.location.href);
+    return new XMLSerializer().serializeToString(output);
+  } finally {
+    restoreMedia();
+  }
 };
+
+const captureAndroidRenderedElement = (element: HTMLElement, width: number, height: number) => new Promise<string>((resolve, reject) => {
+  if (!window.RMSAndroid) {
+    reject(new Error('Android capture bridge is unavailable.'));
+    return;
+  }
+  const requestId = globalThis.crypto?.randomUUID?.() || `capture-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const rect = element.getBoundingClientRect();
+  const timeout = window.setTimeout(() => {
+    androidCaptureResolvers.delete(requestId);
+    reject(new Error('Android preview capture timed out.'));
+  }, 20000);
+  androidCaptureResolvers.set(requestId, { resolve, reject, timeout });
+  window.RMSAndroid.postMessage(JSON.stringify({
+    type: 'capture-rendered-region',
+    requestId,
+    rect: { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
+    cssViewport: { width: window.innerWidth, height: window.innerHeight },
+    target: { width, height },
+  }));
+});
 
 const rasterizeSvg = (svg: string, width: number, height: number, pixelRatio: number) => new Promise<string>((resolve, reject) => {
   const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
@@ -1443,17 +1525,26 @@ function App() {
     setLoading(true);
     if (!runtime.desktop) {
       try {
-        const document = (webviewNode as HTMLIFrameElement | null)?.contentDocument;
-        if (!document) throw new Error(copy.noCapture);
-        let style = document.getElementById('__rms_page_presentation') as HTMLStyleElement | null;
+        if (window.RMSAndroid) {
+          const surface = document.querySelector('.live-screen') as HTMLElement | null;
+          if (!surface) throw new Error(copy.noCapture);
+          const density = Math.max(1, Math.min(2, pixelRatio));
+          const targetWidth = Math.max(1, Math.min(2560, Math.round(captureViewport.width * density)));
+          const targetHeight = Math.max(1, Math.round(targetWidth * captureViewport.height / captureViewport.width));
+          const dataUrl = await captureAndroidRenderedElement(surface, targetWidth, targetHeight);
+          return { ok: true, dataUrl, width: targetWidth, height: targetHeight, url: activeUrl };
+        }
+        const iframeDocument = (webviewNode as HTMLIFrameElement | null)?.contentDocument;
+        if (!iframeDocument) throw new Error(copy.noCapture);
+        let style = iframeDocument.getElementById('__rms_page_presentation') as HTMLStyleElement | null;
         if (!style) {
-          style = document.createElement('style');
+          style = iframeDocument.createElement('style');
           style.id = '__rms_page_presentation';
-          (document.head || document.documentElement).appendChild(style);
+          (iframeDocument.head || iframeDocument.documentElement).appendChild(style);
         }
         style.textContent = guestPresentationCss(captureProject);
-        await document.fonts?.ready;
-        const svg = await serializePageSvg(document, captureViewport.width, captureViewport.height);
+        await iframeDocument.fonts?.ready;
+        const svg = await serializePageSvg(iframeDocument, captureViewport.width, captureViewport.height);
         const dataUrl = await rasterizeSvg(svg, captureViewport.width, captureViewport.height, pixelRatio);
         return { ok: true, dataUrl, width: Math.round(captureViewport.width * pixelRatio), height: Math.round(captureViewport.height * pixelRatio), url: activeUrl };
       } catch (error) {

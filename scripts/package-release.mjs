@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const packageJson = JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8'));
 const version = packageJson.version;
-const versionCode = 13001;
+const versionCode = 13002;
 const deliveryBase = process.env.RMS_DELIVERY_DIR
   ? path.resolve(process.env.RMS_DELIVERY_DIR)
   : path.resolve(root, '..', '..', 'deliveries');
@@ -248,15 +248,15 @@ for (const name of ['electron-ui-1600x980.png', 'electron-device-panel-1600x980.
   if (fsSync.existsSync(source)) await fs.copyFile(source, path.join(screenshotTarget, `windows-${name}`));
 }
 await fs.writeFile(path.join(dirs.REPORT, 'TESLIM-RAPORU-TR.md'), [
-  '# Responsive Mockup Studio 1.3.1 teslim raporu',
+  '# Responsive Mockup Studio 1.3.2 teslim raporu',
   '',
   '## Değişiklik',
   '',
-  '- Mevcut editör korunarak Android tablet paketleme katmanı eklendi.',
-  '- Tek parmak/kalem pan, iki parmak pinch zoom, pointercancel temizliği, dokunmatik hedefler ve dikey/yatay tablet düzenleri tamamlandı.',
-  '- Android sistem dosya seçimi, Downloads çıktısı, tam ekran/Geri yönetimi ve yerel uygulama varlıkları eklendi.',
-  '- Web yayın çubuğuna sekiz dilde Uygulama Hakkında ve Gizlilik, kalıcı dil seçimi ve doğrudan gizlilik hash bağlantıları eklendi.',
-  '- Google Play ve Microsoft Store metadatası gerçek uygulama davranışına göre hazırlandı; gerçek Store ID olmadığı için rozetler Yakında ve pasiftir.',
+  '- Web sitesi içindeki canvas ve video gibi dinamik pikseller PNG/JPG/SVG çıktılarında korunacak şekilde export zinciri düzeltildi.',
+  '- Android sürümünde farklı kaynaktan açılan web siteleri, görünen ekran bölgesini yerel PixelCopy ile yakalayarak eksiksiz dışa aktarır.',
+  '- Web ve Windows SVG yakalama işlemi, dinamik medya katmanlarını veri görseline dönüştürüp cihaz kompozisyonuna tek kez yerleştirir.',
+  '- Kullanıcının sağladığı yeni SVG logo web faviconu, PWA, Windows ve Android ikonlarına uygulandı.',
+  '- Gerçek canvas deseninin export dosyasında bulunduğu piksel analiziyle otomatik doğrulandı.',
   '',
   '## Durum',
   '',
@@ -277,7 +277,7 @@ await fs.writeFile(path.join(dirs.REPORT, 'TESLIM-RAPORU-TR.md'), [
 ].join('\r\n'), 'utf8');
 
 await fs.writeFile(path.join(delivery, 'START-HERE-TR.txt'), [
-  'RESPONSIVE MOCKUP STUDIO 1.3.1',
+  'RESPONSIVE MOCKUP STUDIO 1.3.2',
   '',
   `Android tablet kurulumu: ANDROID/${apkName}`,
   `Google Play paketi: ANDROID/${aabName}`,

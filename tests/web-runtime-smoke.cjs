@@ -3,6 +3,7 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 const { app, BrowserWindow } = require('electron');
+const sharp = require('sharp');
 
 const target = process.argv.find((value) => /^https?:\/\//.test(value)) || 'http://127.0.0.1:4173/';
 const testProfile = path.join(os.tmpdir(), `rms-web-runtime-profile-${process.pid}-${Date.now()}`);
@@ -156,11 +157,17 @@ app.whenReady().then(async () => {
     await fs.rm(downloadPath, { force: true });
     assert.ok(exported.length > 20000, `Web export was unexpectedly small: ${exported.length}`);
     assert.equal(exported.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+    const { data: exportedPixels } = await sharp(exported).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    let magentaPixels = 0;
+    for (let index = 0; index < exportedPixels.length; index += 4) {
+      if (exportedPixels[index] > 220 && exportedPixels[index + 1] < 70 && exportedPixels[index + 2] > 220 && exportedPixels[index + 3] > 220) magentaPixels += 1;
+    }
+    assert.ok(magentaPixels > 500, `Live canvas pixels were missing from export: ${magentaPixels} magenta pixels`);
 
-    process.stdout.write(`${JSON.stringify({ ok: true, shell, pageControls, advancedApplied, toggles, exportBytes: exported.length }, null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify({ ok: true, shell, pageControls, advancedApplied, toggles, exportBytes: exported.length, magentaPixels }, null, 2)}\n`);
   } finally {
     if (!window.isDestroyed()) window.destroy();
-    await fs.rm(testProfile, { recursive: true, force: true });
+    await fs.rm(testProfile, { recursive: true, force: true, maxRetries: 8, retryDelay: 250 });
     app.quit();
   }
 }).catch((error) => {

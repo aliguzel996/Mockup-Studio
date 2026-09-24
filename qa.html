@@ -1,5 +1,16 @@
 <!doctype html>
 <html lang="en">
   <head><meta charset="UTF-8" /><title>RMS QA Renderer</title></head>
-  <body style="margin:0;background:#000"><div id="qa-status">ready</div><script type="module" src="/src/qa.ts"></script></body>
+  <body style="margin:0;background:#000">
+    <div id="qa-status">ready</div>
+    <canvas id="qa-canvas" width="420" height="220" style="display:block;width:420px;height:220px"></canvas>
+    <script>
+      const canvas = document.getElementById('qa-canvas');
+      const context = canvas.getContext('2d');
+      context.fillStyle = '#ff00ff'; context.fillRect(0, 0, 210, 110);
+      context.fillStyle = '#00ffff'; context.fillRect(210, 0, 210, 110);
+      context.fillStyle = '#ffff00'; context.fillRect(0, 110, 420, 110);
+    </script>
+    <script type="module" src="/src/qa.ts"></script>
+  </body>
 </html>

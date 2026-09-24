@@ -394,11 +394,48 @@ async function capturePageSvg(options) {
     const library = await fs.readFile(path.join(__dirname, 'dom-to-svg.bundle.js'), 'utf8');
     let svg = await target.executeJavaScript(`(async () => {
       ${library}
-      const area = new DOMRect(0, ${Math.max(0, Number(options.scrollY) || 0)}, ${viewportWidth}, ${viewportHeight});
-      const output = RMSSVG.documentToSVG(document, { captureArea: area, keepLinks: false });
-      await RMSSVG.inlineResources(output.documentElement);
-      output.documentElement.setAttribute('data-rms-vector-source', location.href);
-      return new XMLSerializer().serializeToString(output);
+      const replacements = [];
+      const installSnapshot = async (original, dataUrl) => {
+        const snapshot = document.createElement('img');
+        for (const attribute of Array.from(original.attributes)) snapshot.setAttribute(attribute.name, attribute.value);
+        const rect = original.getBoundingClientRect();
+        snapshot.src = dataUrl;
+        snapshot.setAttribute('data-rms-media-snapshot', original.tagName.toLowerCase());
+        snapshot.style.width = rect.width + 'px';
+        snapshot.style.height = rect.height + 'px';
+        snapshot.style.objectFit = 'fill';
+        original.replaceWith(snapshot);
+        try { await snapshot.decode(); } catch {}
+        replacements.push({ original, snapshot });
+      };
+      for (const canvas of Array.from(document.querySelectorAll('canvas'))) {
+        try {
+          if (canvas.width > 0 && canvas.height > 0) await installSnapshot(canvas, canvas.toDataURL('image/png'));
+        } catch {}
+      }
+      for (const video of Array.from(document.querySelectorAll('video'))) {
+        try {
+          if (video.readyState < 2 || video.videoWidth <= 0 || video.videoHeight <= 0) continue;
+          const canvas = document.createElement('canvas');
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          const context = canvas.getContext('2d');
+          if (!context) continue;
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+          await installSnapshot(video, canvas.toDataURL('image/png'));
+        } catch {}
+      }
+      try {
+        const area = new DOMRect(0, ${Math.max(0, Number(options.scrollY) || 0)}, ${viewportWidth}, ${viewportHeight});
+        const output = RMSSVG.documentToSVG(document, { captureArea: area, keepLinks: false });
+        await RMSSVG.inlineResources(output.documentElement);
+        output.documentElement.setAttribute('data-rms-vector-source', location.href);
+        return new XMLSerializer().serializeToString(output);
+      } finally {
+        for (const { original, snapshot } of replacements.reverse()) {
+          if (snapshot.isConnected) snapshot.replaceWith(original);
+        }
+      }
     })()`, true);
     svg = await inlineSvgExternalResources(svg, target.session);
     const outlined = await outlineSvgText(svg, target, path.join(__dirname, '..'));

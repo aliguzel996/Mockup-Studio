@@ -3,11 +3,16 @@ package co.ycswu.responsivemockupstudio;
 import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.MediaStore;
+import android.view.PixelCopy;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -31,6 +36,7 @@ import androidx.webkit.WebViewFeature;
 
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
@@ -162,9 +168,19 @@ public final class MainActivity extends Activity {
 
     private void handleBridgeMessage(@Nullable String json) {
         if (json == null || json.length() > 90_000_000) return;
+        final JSONObject request;
+        try {
+            request = new JSONObject(json);
+        } catch (Exception error) {
+            Toast.makeText(this, "Geçersiz uygulama isteği", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if ("capture-rendered-region".equals(request.optString("type", ""))) {
+            runOnUiThread(() -> captureRenderedRegion(request));
+            return;
+        }
         new Thread(() -> {
             try {
-                JSONObject request = new JSONObject(json);
                 String type = request.optString("type", "");
                 String name = sanitizeName(request.optString("name", "responsive-mockup"));
                 String mime;
@@ -188,6 +204,73 @@ public final class MainActivity extends Activity {
                 runOnUiThread(() -> Toast.makeText(this, "Dışa aktarma başarısız: " + error.getMessage(), Toast.LENGTH_LONG).show());
             }
         }, "rms-export").start();
+    }
+
+    private void captureRenderedRegion(@NonNull JSONObject request) {
+        String requestId = request.optString("requestId", "");
+        if (requestId.isEmpty() || webView == null || webView.getWidth() <= 0 || webView.getHeight() <= 0) {
+            resolveRenderedCapture(requestId, null, "Android preview surface is unavailable.");
+            return;
+        }
+        try {
+            JSONObject rectJson = request.getJSONObject("rect");
+            JSONObject viewportJson = request.getJSONObject("cssViewport");
+            JSONObject targetJson = request.getJSONObject("target");
+            double cssWidth = Math.max(1d, viewportJson.optDouble("width", webView.getWidth()));
+            double cssHeight = Math.max(1d, viewportJson.optDouble("height", webView.getHeight()));
+            double scaleX = webView.getWidth() / cssWidth;
+            double scaleY = webView.getHeight() / cssHeight;
+            int[] location = new int[2];
+            webView.getLocationInWindow(location);
+            int left = location[0] + (int) Math.round(rectJson.optDouble("x", 0d) * scaleX);
+            int top = location[1] + (int) Math.round(rectJson.optDouble("y", 0d) * scaleY);
+            int right = left + (int) Math.round(rectJson.optDouble("width", 0d) * scaleX);
+            int bottom = top + (int) Math.round(rectJson.optDouble("height", 0d) * scaleY);
+            View decor = getWindow().getDecorView();
+            left = Math.max(0, Math.min(left, decor.getWidth()));
+            top = Math.max(0, Math.min(top, decor.getHeight()));
+            right = Math.max(left, Math.min(right, decor.getWidth()));
+            bottom = Math.max(top, Math.min(bottom, decor.getHeight()));
+            if (right <= left || bottom <= top) throw new IllegalArgumentException("Preview region is empty.");
+
+            double requestedWidth = Math.max(1d, targetJson.optDouble("width", right - left));
+            double requestedHeight = Math.max(1d, targetJson.optDouble("height", bottom - top));
+            double reduction = Math.min(1d, 2560d / Math.max(requestedWidth, requestedHeight));
+            reduction = Math.min(reduction, Math.sqrt(6_553_600d / (requestedWidth * requestedHeight)));
+            int targetWidth = Math.max(1, (int) Math.round(requestedWidth * reduction));
+            int targetHeight = Math.max(1, (int) Math.round(requestedHeight * reduction));
+            Bitmap bitmap = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888);
+            Rect source = new Rect(left, top, right, bottom);
+            PixelCopy.request(getWindow(), source, bitmap, result -> {
+                if (result != PixelCopy.SUCCESS) {
+                    bitmap.recycle();
+                    resolveRenderedCapture(requestId, null, "Android rendered capture failed (" + result + ").");
+                    return;
+                }
+                try (ByteArrayOutputStream stream = new ByteArrayOutputStream()) {
+                    if (!bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)) {
+                        throw new IllegalStateException("PNG encoding failed.");
+                    }
+                    String dataUrl = "data:image/png;base64," + Base64.getEncoder().encodeToString(stream.toByteArray());
+                    resolveRenderedCapture(requestId, dataUrl, null);
+                } catch (Exception error) {
+                    resolveRenderedCapture(requestId, null, error.getMessage());
+                } finally {
+                    bitmap.recycle();
+                }
+            }, new Handler(Looper.getMainLooper()));
+        } catch (Exception error) {
+            resolveRenderedCapture(requestId, null, error.getMessage());
+        }
+    }
+
+    private void resolveRenderedCapture(@Nullable String requestId, @Nullable String dataUrl, @Nullable String error) {
+        if (webView == null || requestId == null || requestId.isEmpty()) return;
+        String script = "window.__rmsResolveAndroidCapture&&window.__rmsResolveAndroidCapture("
+                + JSONObject.quote(requestId) + ","
+                + (dataUrl == null ? "undefined" : JSONObject.quote(dataUrl)) + ","
+                + (error == null ? "undefined" : JSONObject.quote(error)) + ")";
+        webView.evaluateJavascript(script, null);
     }
 
     private Uri saveToDownloads(String name, String mime, byte[] bytes) throws Exception {

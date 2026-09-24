@@ -165,7 +165,7 @@ app.whenReady().then(async () => {
   } finally {
     if (screenshotWindow && !screenshotWindow.isDestroyed()) screenshotWindow.destroy();
     if (!window.isDestroyed()) window.destroy();
-    await fs.rm(profile, { recursive: true, force: true });
+    await fs.rm(profile, { recursive: true, force: true, maxRetries: 8, retryDelay: 250 });
     app.quit();
   }
 }).catch((error) => {
