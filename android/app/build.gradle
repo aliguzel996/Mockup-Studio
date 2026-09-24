@@ -14,8 +14,8 @@ android {
         applicationId 'co.ycswu.responsivemockupstudio'
         minSdk 26
         targetSdk 36
-        versionCode 13008
-        versionName '1.3.8'
+        versionCode 13009
+        versionName '1.3.9'
     }
 
     signingConfigs {

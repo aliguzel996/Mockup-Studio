@@ -1386,6 +1386,11 @@ function App() {
 
   const removeDeviceComponent = (component: 'stem' | 'base' | 'deck' | 'detail' | 'phoneLeftControls' | 'phoneRightButton', label: string) => {
     updateProject({ [`${component}Visible`]: false } as Partial<ProjectState>);
+    if (window.RMSAndroid) {
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+        window.RMSAndroid?.postMessage(JSON.stringify({ type: 'native-preview-command', command: 'redraw' }));
+      }));
+    }
     showToast(language === 'tr' ? `${label} kaldırıldı.` : `${label} removed.`, 'good');
   };
 

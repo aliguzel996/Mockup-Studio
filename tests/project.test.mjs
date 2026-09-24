@@ -314,7 +314,12 @@ test('dynamic canvas and video pixels survive web Windows and Android export', (
   assert.match(main, /canvas\.toDataURL\('image\/png'\)/);
   assert.match(android, /capture-rendered-region/);
   assert.match(android, /PixelCopy\.request/);
+  assert.match(android, /postVisualStateCallback/);
+  assert.match(android, /data-rms-native-capture-snapshot/);
+  assert.match(android, /canvas\.toDataURL\('image\/png'\)/);
+  assert.match(android, /window\.__rmsNativeCaptureRestore/);
   assert.match(android, /__rmsResolveAndroidCapture/);
+  assert.match(app, /command: 'redraw'/);
 });
 
 test('JPG PNG and native SVG exports are wired without foreignObject raster wrappers', () => {

@@ -1,6 +1,6 @@
 # Google Play Data safety draft
 
-This is a submission draft based on source and manifest review for version 1.3.8 (versionCode 13008). Recheck it against the final Play Console form before submission.
+This is a submission draft based on source and manifest review for version 1.3.9 (versionCode 13009). Recheck it against the final Play Console form before submission.
 
 ## Recommended answers
 

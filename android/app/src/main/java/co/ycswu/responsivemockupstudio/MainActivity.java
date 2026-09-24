@@ -63,6 +63,7 @@ public final class MainActivity extends Activity {
     private View fullscreenView;
     private WebChromeClient.CustomViewCallback fullscreenCallback;
     private long lastBackPressedAt;
+    private long previewVisualStateSequence;
 
     @Override
     protected void onCreate(@Nullable Bundle state) {
@@ -448,6 +449,8 @@ public final class MainActivity extends Activity {
             previewContainer.bringToFront();
             previewContainer.requestLayout();
             previewWebView.requestLayout();
+            previewContainer.invalidate();
+            previewWebView.invalidate();
 
             if (!url.equals(previewUrl)) {
                 previewUrl = url;
@@ -484,6 +487,10 @@ public final class MainActivity extends Activity {
             case "reload":
                 previewWebView.reload();
                 break;
+            case "redraw":
+                previewContainer.invalidate();
+                previewWebView.invalidate();
+                break;
             default:
                 break;
         }
@@ -514,10 +521,84 @@ public final class MainActivity extends Activity {
 
     private void captureRenderedRegion(@NonNull JSONObject request) {
         String requestId = request.optString("requestId", "");
-        if (requestId.isEmpty() || webView == null || webView.getWidth() <= 0 || webView.getHeight() <= 0) {
+        if (requestId.isEmpty() || webView == null || webView.getWidth() <= 0 || webView.getHeight() <= 0
+                || previewWebView == null || previewContainer == null || previewContainer.getVisibility() != View.VISIBLE) {
             resolveRenderedCapture(requestId, null, "Android preview surface is unavailable.");
             return;
         }
+        prepareDynamicPreviewSnapshots(() -> captureRenderedRegionPixels(request));
+    }
+
+    private void prepareDynamicPreviewSnapshots(@NonNull Runnable capture) {
+        if (previewWebView == null) {
+            capture.run();
+            return;
+        }
+        String script = "(()=>{try{"
+                + "window.__rmsNativeCaptureRestore?.();"
+                + "window.__rmsNativeCaptureSnapshotsReady=false;"
+                + "const entries=[],pending=[];"
+                + "const swap=(node,src)=>{if(!src||!node.parentNode)return;"
+                + "const image=document.createElement('img'),style=getComputedStyle(node),parent=node.parentNode;"
+                + "image.src=src;image.alt='';image.setAttribute('data-rms-native-capture-snapshot','');"
+                + "image.className=node.className;if(node.id)image.id=node.id;image.style.cssText=node.style.cssText;"
+                + "image.style.width=style.width;image.style.height=style.height;image.style.display=style.display;"
+                + "for(const key of ['position','inset','top','right','bottom','left','margin','padding','transform','transformOrigin','opacity','zIndex','boxSizing','border','borderRadius'])image.style[key]=style[key];"
+                + "image.style.objectFit=node.tagName==='VIDEO'?style.objectFit:'fill';image.style.objectPosition=style.objectPosition;"
+                + "parent.insertBefore(image,node);parent.removeChild(node);entries.push({parent,node,image});"
+                + "if(image.decode)pending.push(image.decode().catch(()=>{}));};"
+                + "document.querySelectorAll('canvas').forEach(node=>{try{swap(node,node.toDataURL('image/png'));}catch(_){}});"
+                + "document.querySelectorAll('video').forEach(node=>{try{if(!node.videoWidth||!node.videoHeight)return;"
+                + "const canvas=document.createElement('canvas');canvas.width=node.videoWidth;canvas.height=node.videoHeight;"
+                + "canvas.getContext('2d').drawImage(node,0,0);swap(node,canvas.toDataURL('image/png'));}catch(_){}});"
+                + "window.__rmsNativeCaptureRestore=()=>{for(const entry of entries){if(entry.image.parentNode===entry.parent){"
+                + "entry.parent.insertBefore(entry.node,entry.image);entry.image.remove();}}"
+                + "window.__rmsNativeCaptureRestore=null;window.__rmsNativeCaptureSnapshotsReady=false;};"
+                + "Promise.all(pending).then(()=>{window.__rmsNativeCaptureSnapshotsReady=true;});return entries.length;"
+                + "}catch(_){window.__rmsNativeCaptureSnapshotsReady=true;return 0;}})()";
+        previewWebView.evaluateJavascript(script, ignored -> waitForPreviewSnapshots(capture, 0));
+    }
+
+    private void waitForPreviewSnapshots(@NonNull Runnable capture, int attempt) {
+        if (previewWebView == null) {
+            capture.run();
+            return;
+        }
+        previewWebView.evaluateJavascript("Boolean(window.__rmsNativeCaptureSnapshotsReady)", ready -> {
+            if ("true".equals(ready) || attempt >= 30) {
+                waitForPreviewVisualState(capture);
+                return;
+            }
+            previewWebView.postDelayed(() -> waitForPreviewSnapshots(capture, attempt + 1), 16L);
+        });
+    }
+
+    private void waitForPreviewVisualState(@NonNull Runnable action) {
+        if (previewWebView == null || previewContainer == null) {
+            action.run();
+            return;
+        }
+        previewContainer.invalidate();
+        previewWebView.invalidate();
+        previewWebView.postVisualStateCallback(++previewVisualStateSequence, new WebView.VisualStateCallback() {
+            @Override
+            public void onComplete(long requestId) {
+                if (previewWebView == null) {
+                    action.run();
+                    return;
+                }
+                previewWebView.postOnAnimation(() -> previewWebView.postOnAnimation(action));
+            }
+        });
+    }
+
+    private void restoreDynamicPreviewSnapshots() {
+        if (previewWebView == null) return;
+        previewWebView.evaluateJavascript("window.__rmsNativeCaptureRestore?.()", null);
+    }
+
+    private void captureRenderedRegionPixels(@NonNull JSONObject request) {
+        String requestId = request.optString("requestId", "");
         try {
             JSONObject rectJson = request.getJSONObject("rect");
             JSONObject viewportJson = request.getJSONObject("cssViewport");
@@ -550,6 +631,7 @@ public final class MainActivity extends Activity {
             PixelCopy.request(getWindow(), source, bitmap, result -> {
                 if (result != PixelCopy.SUCCESS) {
                     bitmap.recycle();
+                    restoreDynamicPreviewSnapshots();
                     resolveRenderedCapture(requestId, null, "Android rendered capture failed (" + result + ").");
                     return;
                 }
@@ -563,9 +645,11 @@ public final class MainActivity extends Activity {
                     resolveRenderedCapture(requestId, null, error.getMessage());
                 } finally {
                     bitmap.recycle();
+                    restoreDynamicPreviewSnapshots();
                 }
             }, new Handler(Looper.getMainLooper()));
         } catch (Exception error) {
+            restoreDynamicPreviewSnapshots();
             resolveRenderedCapture(requestId, null, error.getMessage());
         }
     }
