@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "responsive-mockup-studio",
   "displayName": "Responsive Mockup Studio",
-  "version": "1.3.3",
+  "version": "1.3.4",
   "kind": "creative-tool",
   "platforms": ["web", "windows"],
   "capabilities": [

@@ -18,6 +18,7 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.webkit.ValueCallback;
 import android.webkit.CookieManager;
+import android.webkit.JavascriptInterface;
 import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -159,9 +160,14 @@ public final class MainActivity extends Activity {
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
             WebViewCompat.addWebMessageListener(webView, "RMSAndroid", Collections.singleton(APP_ORIGIN),
                     (view, message, sourceOrigin, isMainFrame, replyProxy) -> {
-                        if (!isMainFrame || !APP_ORIGIN.equals(sourceOrigin.toString())) return;
+                        if (!isMainFrame || !isAppUrl(sourceOrigin)) return;
                         handleBridgeMessage(message.getData());
                     });
+        } else {
+            // Older Android System WebView builds do not expose WEB_MESSAGE_LISTENER.
+            // The shell itself is bundled and trusted; remote pages render in previewWebView,
+            // so this compatibility bridge is not exposed to website content.
+            webView.addJavascriptInterface(new LegacyAndroidBridge(), "RMSAndroid");
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -177,6 +183,13 @@ public final class MainActivity extends Activity {
         return uri != null
                 && "https".equalsIgnoreCase(uri.getScheme())
                 && "appassets.androidplatform.net".equalsIgnoreCase(uri.getHost());
+    }
+
+    private final class LegacyAndroidBridge {
+        @JavascriptInterface
+        public void postMessage(@Nullable String message) {
+            handleBridgeMessage(message);
+        }
     }
 
     private void createPreviewSurface() {
@@ -201,9 +214,10 @@ public final class MainActivity extends Activity {
         previewSettings.setSupportMultipleWindows(false);
         previewSettings.setJavaScriptCanOpenWindowsAutomatically(false);
         previewSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+        previewSettings.setCacheMode(WebSettings.LOAD_NO_CACHE);
         previewSettings.setUseWideViewPort(true);
         previewSettings.setLoadWithOverviewMode(false);
-        previewSettings.setUserAgentString(previewSettings.getUserAgentString() + " RMS-Preview/" + BuildConfig.VERSION_NAME);
+        previewWebView.clearCache(true);
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(previewWebView, true);
         previewWebView.setWebViewClient(new WebViewClient() {
@@ -214,6 +228,13 @@ public final class MainActivity extends Activity {
 
             @Override
             public void onPageFinished(WebView view, String url) {
+                previewUrl = url == null ? previewUrl : url;
+                applyPreviewCss();
+                emitPreviewEvent("finish", previewUrl, null);
+            }
+
+            @Override
+            public void onPageCommitVisible(WebView view, String url) {
                 previewUrl = url == null ? previewUrl : url;
                 applyPreviewCss();
                 emitPreviewEvent("finish", previewUrl, null);

@@ -425,6 +425,12 @@ test('Android renders remote websites in a native preview WebView instead of the
   assert.match(activity, /private FrameLayout previewContainer;/);
   assert.match(activity, /private WebView previewWebView;/);
   assert.match(activity, /setAcceptThirdPartyCookies\(previewWebView, true\)/);
+  assert.match(activity, /addJavascriptInterface\(new LegacyAndroidBridge\(\), "RMSAndroid"\)/);
+  assert.match(activity, /!isMainFrame \|\| !isAppUrl\(sourceOrigin\)/);
+  assert.match(activity, /@JavascriptInterface[\s\S]*void postMessage/);
+  assert.match(activity, /setCacheMode\(WebSettings\.LOAD_NO_CACHE\)/);
+  assert.match(activity, /onPageCommitVisible/);
+  assert.doesNotMatch(activity, /RMS-Preview\//);
   assert.match(activity, /private void syncNativePreview/);
   assert.match(activity, /private void applyPreviewCss/);
   assert.match(activity, /previewWebView\.loadUrl\(url\)/);

@@ -31,7 +31,7 @@ $secretFile = Join-Path $privateRoot 'release-password.dpapi'
 $alias = 'responsive-mockup-studio'
 $releaseRoot = Join-Path $repoRoot 'release\android'
 $version = (Get-Content -LiteralPath (Join-Path $repoRoot 'package.json') -Raw | ConvertFrom-Json).version
-$versionCode = 13003
+$versionCode = 13004
 
 if (-not (Test-Path -LiteralPath (Join-Path $javaHome 'bin\java.exe'))) { throw "JDK bulunamadı: $javaHome" }
 if (-not (Test-Path -LiteralPath (Join-Path $sdkRoot 'platforms\android-36\android.jar'))) { throw "Android SDK 36 bulunamadı: $sdkRoot" }
