@@ -31,10 +31,7 @@ import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.webkit.JavaScriptReplyProxy;
 import androidx.webkit.WebViewAssetLoader;
-import androidx.webkit.WebViewCompat;
-import androidx.webkit.WebViewFeature;
 
 import org.json.JSONObject;
 
@@ -44,7 +41,6 @@ import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.Collections;
 
 public final class MainActivity extends Activity {
     private static final int FILE_CHOOSER_REQUEST = 6013;
@@ -157,18 +153,11 @@ public final class MainActivity extends Activity {
         webView.setWebChromeClient(sharedChromeClient);
         previewWebView.setWebChromeClient(sharedChromeClient);
 
-        if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
-            WebViewCompat.addWebMessageListener(webView, "RMSAndroid", Collections.singleton(APP_ORIGIN),
-                    (view, message, sourceOrigin, isMainFrame, replyProxy) -> {
-                        if (!isMainFrame || !isAppUrl(sourceOrigin)) return;
-                        handleBridgeMessage(message.getData());
-                    });
-        } else {
-            // Older Android System WebView builds do not expose WEB_MESSAGE_LISTENER.
-            // The shell itself is bundled and trusted; remote pages render in previewWebView,
-            // so this compatibility bridge is not exposed to website content.
-            webView.addJavascriptInterface(new LegacyAndroidBridge(), "RMSAndroid");
-        }
+        // The bundled shell is the only document loaded in this WebView. Remote websites
+        // live in previewWebView, so the interface cannot be reached by untrusted pages.
+        // Using one bridge on every Android WebView avoids provider-specific message-listener
+        // failures that otherwise leave the website preview waiting forever.
+        webView.addJavascriptInterface(new AndroidBridge(), "RMSAndroid");
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             getOnBackInvokedDispatcher().registerOnBackInvokedCallback(0, () -> {
@@ -185,7 +174,7 @@ public final class MainActivity extends Activity {
                 && "appassets.androidplatform.net".equalsIgnoreCase(uri.getHost());
     }
 
-    private final class LegacyAndroidBridge {
+    private final class AndroidBridge {
         @JavascriptInterface
         public void postMessage(@Nullable String message) {
             handleBridgeMessage(message);
